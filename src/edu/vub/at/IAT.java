@@ -27,11 +27,30 @@
  */
 package edu.vub.at;
 
+import edu.vub.at.exceptions.NATException;
+import edu.vub.at.exceptions.XDuplicateSlot;
+import edu.vub.at.exceptions.XParseError;
+import edu.vub.at.exceptions.XTypeMismatch;
+import edu.vub.at.objects.ATAbstractGrammar;
+import edu.vub.at.objects.ATField;
+import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.grammar.ATSymbol;
+import edu.vub.at.objects.mirrors.Reflection;
+import edu.vub.at.objects.natives.NATContext;
+import edu.vub.at.objects.natives.NATNamespace;
+import edu.vub.at.objects.natives.NATObject;
+import edu.vub.at.objects.natives.OBJLexicalRoot;
+import edu.vub.at.objects.natives.OBJSystem;
+import edu.vub.at.objects.natives.grammar.AGSymbol;
+import edu.vub.at.parser.NATParser;
+
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * IAT is the main entry point for the 'iat' Interactive AmbientTalk shell.
@@ -60,32 +79,30 @@ import java.util.Properties;
  * (unless -p was specified, in which case it prints out the last evaluated expression and quits)
  * 
  * During execution of the iat program, the AmbientTalk Lexical root contains an object called
- * 'system' with the following methods:
- * def system := object: {
- *   def exit() { quits iat }
- *   def print(txt) { print string to standard output }
- *   def println(txt) { print(txt + '\n') }
- *   def read() { read character from standard input }
- *   def readln() { read next line from input }
- *   def reset() { reset VM into fresh startup state and re-evaluates init file }
- *   def reload() { evaluate the argument file again }
- *   def args() { returns the table of extra command-line arguments passed to iat }
- * }
+ * 'system'. For more information about this object, see the OBJSystem class:
+ * @see edu.vub.at.natives.OBJSystem
  * 
  * @author tvcutsem
  */
 public final class IAT {
 
 	private static final String _EXEC_NAME_ = "iat";
+	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
+	private static final String _ENV_AT_HOME_ = "AT_HOME";
+	
+	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.alloc("system");
 	
 	private static final Properties _IAT_PROPS_ = new Properties();
+	private static String _INPUT_PROMPT_;
+	private static String _OUTPUT_PROMPT_;
 	
 	static {
 		try {
 			_IAT_PROPS_.load(IAT.class.getResourceAsStream("iat.props"));
+			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
+			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
 		} catch (IOException e) {
-			System.out.println("Fatal error while trying to load internal properties: "+e.getMessage());
-			System.exit(1);
+			abort("Fatal error while trying to load internal properties: "+e.getMessage());
 		}
 	}
 	
@@ -117,7 +134,6 @@ public final class IAT {
 		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:phvq", longopts);
 
 		int c;
-		String arg;
 		while ((c = g.getopt()) != -1) {
 		     switch(c) {
 		          case 'i': _INIT_ARG_ = g.getOptarg(); break;
@@ -138,11 +154,11 @@ public final class IAT {
 		int firstNonOptionArgumentIdx = g.getOptind();
 		if (firstNonOptionArgumentIdx < args.length) {
 			// a file name to load was passed
-			_FILE_ARG_ = args[firstNonOptionArgumentIdx];
+			_FILE_ARG_ = args[firstNonOptionArgumentIdx++];
 		}
 		_ARGUMENTS_ARG_ = new String[args.length - firstNonOptionArgumentIdx];
 		for (int i = 0; i < _ARGUMENTS_ARG_.length ; i++) {
-			_ARGUMENTS_ARG_[i] = args[i + firstNonOptionArgumentIdx + 1];
+			_ARGUMENTS_ARG_[i] = args[i + firstNonOptionArgumentIdx];
 		}
 	}
 	
@@ -154,8 +170,13 @@ public final class IAT {
 		}
 		
 		if (_HELP_ARG_) {
+		  printVersion();
 		  System.out.println(_IAT_PROPS_.getProperty("help", "no help available"));
 		  System.exit(0);
+		}
+		
+		if (!_QUIET_ARG_) {
+			printVersion();
 		}
 	}
 	
@@ -166,39 +187,248 @@ public final class IAT {
 	}
 	
 	/**
+	 * Startup sequence:
+	 *  I) parse command-line arguments, extract properties
+	 * II) check for simple -help or -version arguments
+	 * 
+	 * 1) initialize the lobby using the object path (-o or default)
+	 * 2) add system object to the lexical root
+	 * 3) evaluate init file (-i or default) in context of lexical root
+	 * 4) if -e was specified, then
+	 *      evaluate the given code
+	 *    else if a filename was specified then
+	 *      load the file and evaluate it within its own namespace
+	 *    else
+	 *      skip
+	 * 5) if -p was specified, then
+	 *      print value of last evaluation
+	 *      quit
+	 *    else
+	 *      enter REPL:
+	 *       1) print input prompt (unless -q)
+	 *       2) read input
+	 *       3) parse input
+	 *       4) eval input in global file namespace
+	 *       5) print output prompt (unless -q)
+	 *       6) print value of last evaluation
+	 *       
 	 * @param args arguments passed to the JVM, which should all be interpreted as arguments to 'iat'
 	 */
 	public static void main(String[] args) {
 		parseArguments(args);
 		processInformativeArguments();
 		
-		if (!_QUIET_ARG_) {
-			printVersion();
+		// initialize the lobby using the object path
+		initLobbyUsingObjectPath();
+		
+		printObjectPath();
+		
+		// bind 'system' in the global scope to a system object
+		initSystemObject();
+		
+		// evaluate startup code, which is either the given code (-e) or the code in the main file
+		String startupCode = null;
+		NATObject mainEvalScope = null;
+		if (_EVAL_ARG_ != null) {
+			// evaluate the -e code and disregard the main file
+			startupCode = _EVAL_ARG_;
+			mainEvalScope = new NATObject();
+		} else if(_FILE_ARG_ != null) {
+			// evaluate the main file
+			File main = new File(_FILE_ARG_);
+			if (!main.exists()) {
+				abort("File does not exist: " + main.getName());
+			} else {
+				try {
+					startupCode = NATNamespace.loadContentOfFile(main);
+				} catch (IOException e) {
+					abort("Error reading main file: "+e.getMessage());
+				}
+				mainEvalScope = NATNamespace.createFileScopeFor(new NATNamespace("/"+main.getName(), main));
+			}
 		}
 		
-		/*
-		 * Startup sequence:
-		 * 1) initialize the lobby using the object path (-o or default)
-		 * 2) add system object to the lexical root
-		 * 3) evaluate init file (-i or default) in context of lexical root
-		 * 4) if -e was specified, then
-		 *      evaluate the given code
-		 *    else if a filename was specified then
-		 *      load the file and evaluate it within its own namespace
-		 *    else
-		 *      skip
-		 * 5) if -p was specified, then
-		 *      print value of last evaluation
-		 *      quit
-		 *    else
-		 *      enter REPL:
-		 *       1) print input prompt (unless -q)
-		 *       2) read input
-		 *       3) parse input
-		 *       4) eval input in global file namespace
-		 *       5) print output prompt (unless -q)
-		 *       6) print value of last evaluation
-		 */
+		// if either -e or a main file were specified, evaluate the code now
+		if (startupCode != null) {
+			NATContext globalcontext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.getDynamicParent());;
+			ATObject value = null;
+			try {
+				ATAbstractGrammar parsetree = NATParser.parse(_FILE_ARG_ == null ? "option": _FILE_ARG_, startupCode);
+				value = parsetree.meta_eval(globalcontext);
+			} catch (XParseError e) {
+				handleParseError(e);
+			} catch (NATException e) {
+				handleATException(e);
+			}
+			
+			// if -p was specified, print the value and quit
+			if (_PRINT_ARG_ && (value != null)) {
+				String printedValue;
+				try {
+					printedValue = value.meta_print().javaValue;
+				} catch (XTypeMismatch e) {
+					printedValue = "<unprintable: " + e.getMessage() +">";
+				}
+				System.out.println(printedValue);
+				System.exit(0);
+			}
+			
+			// go into the REPL
+			readEvalPrintLoop(globalcontext);
+		}
+	}
+	
+	
+	/**
+	 * Initializes the lobby namespace with a slot for each directory in the object path.
+	 * The slot name corresponds to the last name of the directory. The slot value corresponds
+	 * to a namespace object initialized with the directory.
+	 * 
+	 * If the user did not specify an objectpath, the default is .;$AT_OBJECTPATH;$AT_HOME
+	 */
+	private static void initLobbyUsingObjectPath() {
+		if (_OBJECTPATH_ARG_ == null) {
+			String envObjPath = System.getProperty(_ENV_AT_OBJECTPATH_);
+			String envHome = System.getProperty(_ENV_AT_HOME_);
+			_OBJECTPATH_ARG_ = System.getProperty("user.dir") +
+			   (envObjPath == null ? "" : (";"+envObjPath)) +
+			   (envHome == null ? "" : (";"+envHome));
+		}
+		
+		// split the object path using its ';' separator
+		String[] paths = null;
+		try {
+			 paths = _OBJECTPATH_ARG_.split(";");
+		} catch (PatternSyntaxException e) {
+			abort("Fatal error parsing object path:" + e.getMessage());
+		}
+		
+		NATObject lobby = OBJLexicalRoot.getLobbyNamespace();
+		
+		// add an entry for each path to the lobby
+		for (int i = 0; i < paths.length; i++) {
+			File pathfile = new File(paths[i]);
+			// issue a warning if the given pathname does not exist
+			if (!pathfile.exists()) {
+			  warn("unknown objectpath directory: " + pathfile.getAbsolutePath());
+			} else if (!pathfile.isDirectory()) {
+				abort("Error: non-directory file on classpath: " + pathfile.getAbsolutePath());
+			}
+			
+			if (!pathfile.isAbsolute()) {
+				try {
+					pathfile = pathfile.getCanonicalFile();
+				} catch (IOException e) {
+					abort("Fatal error while constructing objectpath: " + e.getMessage());
+				}
+			}
+			
+			// convert the filename into an AmbientTalk selector
+			ATSymbol selector = Reflection.downSelector(pathfile.getName());
+			try {
+				lobby.meta_defineField(selector, new NATNamespace("/"+pathfile.getName(), pathfile));
+			} catch (XDuplicateSlot e) {
+				warn("shadowed path on classpath: "+pathfile.getAbsolutePath());
+			} catch (XTypeMismatch e) {
+				// should not happen as the selector we're passing is native
+				abort("Fatal error while constructing objectpath: " + e.getMessage());
+			}
+		}
 
+	}
+	
+	private static void initSystemObject() {
+		try {
+			OBJLexicalRoot.getGlobalLexicalScope().meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
+		} catch (XDuplicateSlot e) {
+			// should not happen because the global lexical scope is empty at this point
+			abort("Failed to initialize system object: 'system' name already bound in global scope.");
+		} catch (XTypeMismatch e) {
+			// should again never happen because the selector we've given is native
+			abort("Non-native selector name?" + e.getMessage());
+		}
+	}
+	
+	
+	private static void readEvalPrintLoop(NATContext globalContext) {
+		String input;
+		String output;
+		try {
+			while ((input = readFromConsole()) != null) {
+				ATObject value;
+				try {
+					ATAbstractGrammar parsetree = NATParser.parse("console",input);
+					value = parsetree.meta_eval(globalContext);
+					try {
+						output = value.meta_print().javaValue;
+					} catch (XTypeMismatch e) {
+						output = "<unprintable: " + e.getMessage() +">";
+					}
+					printToConsole(output);
+				} catch (XParseError e) {
+					handleParseError(e);
+				} catch (NATException e) {
+					handleATException(e);
+				}
+			}
+		} catch (IOException e) {
+			abort("Error reading input: "+e.getMessage());
+		}
+	}
+	
+	private static void printObjectPath() {
+		try {
+			System.out.println("objectpath = " + _OBJECTPATH_ARG_);
+			NATObject lobby = OBJLexicalRoot.getLobbyNamespace();
+			ATObject[] slots = lobby.meta_listFields().asNativeTable().elements_;
+			for (int i = 0; i < slots.length; i++) {
+				ATField f = (ATField) slots[i];
+				System.out.print(f.getName().getText().asNativeText().javaValue);
+				System.out.println("=" + f.getValue().meta_print().javaValue);
+			}
+		} catch (NATException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static void handleParseError(XParseError e) {
+		System.out.println(e.getMessage());
+		// try to mark the parse error on the console if that info is available
+		String code = e.getErroneousCode();
+		
+		if (code != null) {
+			// first, find the appropriate line within the code 
+			int lineNo = e.getLine();
+			int colNo = e.getColumn();
+			// TODO: finish printing of parse errors
+		}
+	}
+	
+	private static void handleATException(NATException e) {
+		System.out.println(e.getMessage());
+		// TODO: handle reset of context?
+	}
+	
+	private static String readFromConsole() throws IOException {
+		if (!_QUIET_ARG_) {
+			System.out.print(_INPUT_PROMPT_);
+		}
+		return IATIO._INSTANCE_.readln();
+	}
+	
+	private static void printToConsole(String txt) {
+		if (!_QUIET_ARG_) {
+			System.out.print(_OUTPUT_PROMPT_);
+		}
+		IATIO._INSTANCE_.println(txt);
+	}
+	
+	private static void abort(String message) {
+		System.err.println(message);
+		System.exit(1);
+	}
+	
+	private static void warn(String message) {
+		System.err.println("[warning] "+message);
 	}
 }
