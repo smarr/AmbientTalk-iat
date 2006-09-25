@@ -47,10 +47,11 @@ import edu.vub.at.parser.NATParser;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Properties;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * IAT is the main entry point for the 'iat' Interactive AmbientTalk shell.
@@ -92,7 +93,7 @@ public final class IAT {
 	
 	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.alloc("system");
 	
-	private static final Properties _IAT_PROPS_ = new Properties();
+	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
 	private static String _OUTPUT_PROMPT_;
 	
@@ -180,12 +181,6 @@ public final class IAT {
 		}
 	}
 	
-	private static void printVersion() {
-		String progname = _IAT_PROPS_.getProperty("name", "unknown program name");
-		String version = _IAT_PROPS_.getProperty("version","unknown version");
-		System.out.println(progname + ", version " + version);
-	}
-	
 	/**
 	 * Startup sequence:
 	 *  I) parse command-line arguments, extract properties
@@ -226,6 +221,8 @@ public final class IAT {
 		// bind 'system' in the global scope to a system object
 		initSystemObject();
 		
+         // TODO: read init file
+		
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
 		String startupCode = null;
 		NATObject mainEvalScope = null;
@@ -253,6 +250,7 @@ public final class IAT {
 			NATContext globalcontext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.getDynamicParent());;
 			ATObject value = null;
 			try {
+				// parse startup code, passing along the correct filename, which is 'option' in case of -e code
 				ATAbstractGrammar parsetree = NATParser.parse(_FILE_ARG_ == null ? "option": _FILE_ARG_, startupCode);
 				value = parsetree.meta_eval(globalcontext);
 			} catch (XParseError e) {
@@ -296,13 +294,8 @@ public final class IAT {
 		}
 		
 		// split the object path using its ';' separator
-		String[] paths = null;
-		try {
-			 paths = _OBJECTPATH_ARG_.split(";");
-		} catch (PatternSyntaxException e) {
-			abort("Fatal error parsing object path:" + e.getMessage());
-		}
-		
+		String[] paths = _OBJECTPATH_ARG_.split(";");
+
 		NATObject lobby = OBJLexicalRoot.getLobbyNamespace();
 		
 		// add an entry for each path to the lobby
@@ -330,7 +323,7 @@ public final class IAT {
 			} catch (XDuplicateSlot e) {
 				warn("shadowed path on classpath: "+pathfile.getAbsolutePath());
 			} catch (XTypeMismatch e) {
-				// should not happen as the selector we're passing is native
+				// should not happen as the selector we pass is native
 				abort("Fatal error while constructing objectpath: " + e.getMessage());
 			}
 		}
@@ -345,7 +338,7 @@ public final class IAT {
 			abort("Failed to initialize system object: 'system' name already bound in global scope.");
 		} catch (XTypeMismatch e) {
 			// should again never happen because the selector we've given is native
-			abort("Non-native selector name?" + e.getMessage());
+			abort("Non-native selector name for system?" + e.getMessage());
 		}
 	}
 	
@@ -392,15 +385,36 @@ public final class IAT {
 	}
 	
 	private static void handleParseError(XParseError e) {
-		System.out.println(e.getMessage());
+		System.out.println("parser error in "+e.getMessage());
 		// try to mark the parse error on the console if that info is available
 		String code = e.getErroneousCode();
 		
 		if (code != null) {
-			// first, find the appropriate line within the code 
-			int lineNo = e.getLine();
-			int colNo = e.getColumn();
-			// TODO: finish printing of parse errors
+			try {
+				int lineNo = e.getLine();
+				int colNo = e.getColumn();
+				
+				BufferedReader reader = new BufferedReader(new StringReader(code));
+				int lineCount = 0;
+				String line = "";
+				
+				// first, find the appropriate line in the source code
+				while ((lineCount++ < lineNo) && (line != null)) {
+					line = reader.readLine();
+				}
+				// was the correct line found?
+				if (line != null) {
+					// print the line and mark the column position with a ^
+					System.out.println(line);
+					// print col-1 whitespaces
+					while (colNo-- > 1) {
+						System.out.print(" ");
+					}
+					System.out.println("^");
+				}
+			} catch (IOException ioe) {
+				// could not read from the source string, ignore further parse error handling
+			}
 		}
 	}
 	
@@ -430,5 +444,11 @@ public final class IAT {
 	
 	private static void warn(String message) {
 		System.err.println("[warning] "+message);
+	}
+	
+	private static void printVersion() {
+		String progname = _IAT_PROPS_.getProperty("name", "unknown program name");
+		String version = _IAT_PROPS_.getProperty("version","unknown version");
+		System.out.println(progname + ", version " + version);
 	}
 }
