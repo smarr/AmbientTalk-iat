@@ -448,7 +448,7 @@ public final class IAT {
 	}
 	
 	private static void handleParseError(XParseError e) {
-		System.out.println("parser error in "+e.getMessage());
+		System.out.println("parse error in "+e.getMessage());
 		// try to mark the parse error on the console if that info is available
 		String code = e.getErroneousCode();
 		

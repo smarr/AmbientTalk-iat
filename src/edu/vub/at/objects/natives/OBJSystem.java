@@ -89,20 +89,25 @@ public final class OBJSystem extends NATNil {
 	}
 	
 	/**
-	 * def print(obj) { print obj to standard output }
+	 * def print(@obj) { print obj to standard output }
 	 * @param obj the object to print
 	 * @throws XTypeMismatch if obj cannot be converted into a native value
+	 * 
+	 * TODO: make sure NATTexts are printed without quotes
 	 */
-	public ATNil base_print(ATObject obj) throws XTypeMismatch {
-		IATIO._INSTANCE_.print(obj.meta_print().javaValue);
+	public ATNil base_print(ATObject[] objs) throws XTypeMismatch {
+		for (int i = 0; i < objs.length; i++) {
+			IATIO._INSTANCE_.print(objs[i].meta_print().javaValue);
+		}
 		return NATNil._INSTANCE_;
 	}
 	
 	/**
-	 * def println(txt) { self.print(txt + '\n') }
+	 * def println(@obj) { self.print(#[@obj, '\n']) }
 	 */
-	public ATNil base_println(ATObject obj) throws XTypeMismatch {
-		IATIO._INSTANCE_.println(obj.meta_print().javaValue);
+	public ATNil base_println(ATObject[] objs) throws XTypeMismatch {
+		base_print(objs);
+		IATIO._INSTANCE_.println();
 		return NATNil._INSTANCE_;
 	}
 	
