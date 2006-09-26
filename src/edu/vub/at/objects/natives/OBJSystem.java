@@ -68,6 +68,10 @@ public final class OBJSystem extends NATNil {
 		argv_ = NATTable.atValue(convertedArgv);
 	}
 	
+	public NATText meta_print() throws XTypeMismatch {
+		return NATText.atValue("<native object: system>");
+	}
+	
 	/**
 	 * def argv := command-line arguments passed to iat
 	 * @return a table of ATText values

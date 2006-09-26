@@ -34,4 +34,7 @@ Program arguments:\n \
 \n \
 Program behaviour:\n \
  iat evaluates the code in the argument file, if one is given, then enters a read-eval-print loop\n \
- (unless -p was specified, in which case it prints out the last evaluated expression and quits)\n
+ (unless -p was specified, in which case it prints out the last evaluated expression and quits)\n \
+ \nDuring the execution of iat, the lexical root contains a 'system' object which can be used to interface\n \
+ with the outside world. Also, all subdirectories of all directories in the objectpath are accessible via\n \
+ the lobby namespace.\n
