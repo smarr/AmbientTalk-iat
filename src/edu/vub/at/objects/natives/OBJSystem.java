@@ -27,7 +27,9 @@
  */
 package edu.vub.at.objects.natives;
 
+import edu.vub.at.IAT;
 import edu.vub.at.IATIO;
+import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.exceptions.XTypeMismatch;
 import edu.vub.at.objects.ATNil;
@@ -46,12 +48,11 @@ import java.io.IOException;
  *  def system := object: {
  *   def argv := the table of extra command-line arguments passed to iat
  *   def exit() { quits iat }
- *   def print(txt) { print string to standard output }
- *   def println(txt) { print(txt + '\n') }
+ *   def print(@objs) { print objects to standard output }
+ *   def println(@objs) { print objects to standard output, followed by a newline }
  *   def read() { read character from standard input }
  *   def readln() { read next line from input }
- *   def reset() { reset VM into fresh startup state and re-evaluates init file }
- *   def reload() { evaluate the argument file again } 
+ *   def reset() { reset VM into fresh startup state and re-evaluates init and argument file }
  * }
  *
  * @author tvc
@@ -91,13 +92,19 @@ public final class OBJSystem extends NATNil {
 	/**
 	 * def print(@obj) { print obj to standard output }
 	 * @param obj the object to print
-	 * @throws XTypeMismatch if obj cannot be converted into a native value
+	 * @throws XTypeMismatch if obj cannot be converted into a native text value
 	 * 
 	 * TODO: make sure NATTexts are printed without quotes
 	 */
 	public ATNil base_print(ATObject[] objs) throws XTypeMismatch {
 		for (int i = 0; i < objs.length; i++) {
-			IATIO._INSTANCE_.print(objs[i].meta_print().javaValue);
+			ATObject obj = objs[i];
+			if (obj.isNativeText()) {
+				IATIO._INSTANCE_.print(obj.asNativeText().javaValue);
+			} else {
+				IATIO._INSTANCE_.print(obj.meta_print().javaValue);
+			}
+			
 		}
 		return NATNil._INSTANCE_;
 	}
@@ -145,21 +152,19 @@ public final class OBJSystem extends NATNil {
 	}
 	
 	/**
-	 * def reset() { reset VM into fresh startup state and re-evaluates init file }
+	 * def reset() { reset VM into fresh startup state and re-evaluates init and main file }
+	 * 
+	 * Resets the global lexical scope to an empty object.
+	 * Re-fills the lobby namespace with the directories on the objectpath.
+	 * Re-initializes the system object.
+	 * Re-loads the init file used on startup (user or default init file)
+	 * Re-loads the -e option or main argument file (if applicable)
 	 *   
-	 * @return value of evaluating the init file
+	 * @return value of evaluating the main file or -e option; nil if there is no such file or option
 	 */
 	public ATObject base_reset() {
-		// TODO: implement
-		throw new RuntimeException("system.reset not yet implemented");
-	}
-	
-	/**
-	 * def reload() { evaluate the argument file again } 
-	 * @return value of evaluating the argument file
-	 */
-	public ATObject base_reload() {
-		throw new RuntimeException("system.reload not yet implemented");
+		Evaluator.resetEnvironment();
+		return IAT.boot();
 	}
 
 }
