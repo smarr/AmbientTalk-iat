@@ -31,7 +31,6 @@ import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.NATException;
 import edu.vub.at.exceptions.XDuplicateSlot;
 import edu.vub.at.exceptions.XParseError;
-import edu.vub.at.exceptions.XTypeMismatch;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATField;
 import edu.vub.at.objects.ATObject;
@@ -242,8 +241,8 @@ public final class IAT {
 						lobby.meta_defineField(selector, new NATNamespace("/"+subdir.getName(), subdir));
 					} catch (XDuplicateSlot e) {
 						warn("shadowed path on classpath: "+subdir.getAbsolutePath());
-					} catch (XTypeMismatch e) {
-						// should not happen as the selector we pass is native
+					} catch (NATException e) {
+						// should not happen as the meta_defineField is native
 						abort("Fatal error while constructing objectpath: " + e.getMessage());
 					}	
 				} else {
@@ -260,9 +259,9 @@ public final class IAT {
 		} catch (XDuplicateSlot e) {
 			// should not happen because the global lexical scope is empty at this point
 			abort("Failed to initialize system object: 'system' name already bound in global scope.");
-		} catch (XTypeMismatch e) {
-			// should again never happen because the selector we've given is native
-			abort("Non-native selector name for system?" + e.getMessage());
+		} catch (NATException e) {
+			// should again never happen because the meta_defineField is native
+			abort("Failed to initialize system object: " + e.getMessage());
 		}
 	}
 	
@@ -286,7 +285,7 @@ public final class IAT {
 			
 			// evaluate the initialization code in the context of the global scope
 			NATObject globalScope = Evaluator.getGlobalLexicalScope();
-			NATContext initCtx = new NATContext(globalScope, globalScope, globalScope.getDynamicParent());
+			NATContext initCtx = new NATContext(globalScope, globalScope, globalScope.meta_getDynamicParent());
 			return parseAndEval(initCode, initFile.getName(), initCtx);
 		} catch (URISyntaxException e) {
 			// should not happen as the default init.at file should exist at a valid location
@@ -331,7 +330,7 @@ public final class IAT {
 			mainEvalScope = new NATObject();
 		}
 		
-		_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.getDynamicParent());
+		_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.meta_getDynamicParent());
 		
 		// if either -e or a main file were specified, evaluate the code now
 		if (startupCode != null) {
@@ -347,17 +346,11 @@ public final class IAT {
 	 */
 	private static void readEvalPrintLoop() {
 		String input;
-		String output;
 		try {
 			while ((input = readFromConsole()) != null) {
 				ATObject value = parseAndEval(input, "console", _globalContext);
 				if (value != null) {
-					try {
-						output = value.meta_print().javaValue;
-					} catch (XTypeMismatch e) {
-						output = "<unprintable: " + e.getMessage() +">";
-					}
-					printToConsole(output);
+					printToConsole(Evaluator.toString(value));
 				}
 			}
 		} catch (IOException e) {
@@ -451,8 +444,8 @@ public final class IAT {
 			ATObject[] slots = lobby.meta_listFields().asNativeTable().elements_;
 			for (int i = 0; i < slots.length; i++) {
 				ATField f = (ATField) slots[i];
-				System.out.print(f.getName().getText().asNativeText().javaValue);
-				System.out.println("=" + f.getValue().meta_print().javaValue);
+				System.out.print(f.base_getName().base_getText().asNativeText().javaValue);
+				System.out.println("=" + f.base_getValue().meta_print().javaValue);
 			}
 		} catch (NATException e) {
 			e.printStackTrace();
