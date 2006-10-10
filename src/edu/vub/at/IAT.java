@@ -500,6 +500,7 @@ public final class IAT {
 	
 	private static void handleATException(NATException e) {
 		System.out.println(e.getMessage());
+		e.printAmbientTalkStackTrace(System.out);
 	}
 	
 	private static String readFromConsole() throws IOException {
