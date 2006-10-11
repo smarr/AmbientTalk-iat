@@ -292,6 +292,8 @@ public final class IAT {
 			abort("Could not locate default init file: "+e.getMessage());
 		} catch (IOException e) {
 			abort("Error reading the init file: "+e.getMessage());
+		} catch (NATException e) {
+			abort("Error retrieving dynamic parent of lexroot: " + e.getMessage());
 		}
 		return NATNil._INSTANCE_;
 	}
@@ -330,7 +332,11 @@ public final class IAT {
 			mainEvalScope = new NATObject();
 		}
 		
-		_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.meta_getDynamicParent());
+		try {
+			_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.meta_getDynamicParent());
+		} catch (NATException e) {
+			abort("Error retrieving dynamic parent of main scope: " + e.getMessage());
+		}
 		
 		// if either -e or a main file were specified, evaluate the code now
 		if (startupCode != null) {
