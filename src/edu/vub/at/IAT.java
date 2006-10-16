@@ -28,7 +28,7 @@
 package edu.vub.at;
 
 import edu.vub.at.eval.Evaluator;
-import edu.vub.at.exceptions.NATException;
+import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XDuplicateSlot;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
@@ -241,7 +241,7 @@ public final class IAT {
 						lobby.meta_defineField(selector, new NATNamespace("/"+subdir.getName(), subdir));
 					} catch (XDuplicateSlot e) {
 						warn("shadowed path on classpath: "+subdir.getAbsolutePath());
-					} catch (NATException e) {
+					} catch (InterpreterException e) {
 						// should not happen as the meta_defineField is native
 						abort("Fatal error while constructing objectpath: " + e.getMessage());
 					}	
@@ -259,7 +259,7 @@ public final class IAT {
 		} catch (XDuplicateSlot e) {
 			// should not happen because the global lexical scope is empty at this point
 			abort("Failed to initialize system object: 'system' name already bound in global scope.");
-		} catch (NATException e) {
+		} catch (InterpreterException e) {
 			// should again never happen because the meta_defineField is native
 			abort("Failed to initialize system object: " + e.getMessage());
 		}
@@ -292,7 +292,7 @@ public final class IAT {
 			abort("Could not locate default init file: "+e.getMessage());
 		} catch (IOException e) {
 			abort("Error reading the init file: "+e.getMessage());
-		} catch (NATException e) {
+		} catch (InterpreterException e) {
 			abort("Error retrieving dynamic parent of lexroot: " + e.getMessage());
 		}
 		return NATNil._INSTANCE_;
@@ -334,7 +334,7 @@ public final class IAT {
 		
 		try {
 			_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.meta_getDynamicParent());
-		} catch (NATException e) {
+		} catch (InterpreterException e) {
 			abort("Error retrieving dynamic parent of main scope: " + e.getMessage());
 		}
 		
@@ -453,7 +453,7 @@ public final class IAT {
 				System.out.print(f.base_getName().base_getText().asNativeText().javaValue);
 				System.out.println("=" + f.base_getValue().meta_print().javaValue);
 			}
-		} catch (NATException e) {
+		} catch (InterpreterException e) {
 			e.printStackTrace();
 		}
 	}
@@ -464,7 +464,7 @@ public final class IAT {
 			return ast.meta_eval(ctx);
 		} catch (XParseError e) {
 			handleParseError(e);
-		} catch (NATException e) {
+		} catch (InterpreterException e) {
 			handleATException(e);
 		}
 		return NATNil._INSTANCE_;
@@ -504,7 +504,7 @@ public final class IAT {
 		}
 	}
 	
-	private static void handleATException(NATException e) {
+	private static void handleATException(InterpreterException e) {
 		System.out.println(e.getMessage());
 		e.printAmbientTalkStackTrace(System.out);
 	}

@@ -30,7 +30,7 @@ package edu.vub.at.objects.natives;
 import edu.vub.at.IAT;
 import edu.vub.at.IATIO;
 import edu.vub.at.eval.Evaluator;
-import edu.vub.at.exceptions.NATException;
+import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
@@ -69,7 +69,7 @@ public final class OBJSystem extends NATNil {
 		argv_ = NATTable.atValue(convertedArgv);
 	}
 	
-	public NATText meta_print() throws NATException {
+	public NATText meta_print() throws InterpreterException {
 		return NATText.atValue("<native object: system>");
 	}
 	
@@ -92,11 +92,9 @@ public final class OBJSystem extends NATNil {
 	/**
 	 * def print(@obj) { print obj to standard output }
 	 * @param obj the object to print
-	 * @throws NATException if obj cannot be converted into a native text value
-	 * 
-	 * TODO: make sure NATTexts are printed without quotes
+	 * @throws InterpreterException if obj cannot be converted into a native text value
 	 */
-	public ATNil base_print(ATObject[] objs) throws NATException {
+	public ATNil base_print(ATObject[] objs) throws InterpreterException {
 		for (int i = 0; i < objs.length; i++) {
 			ATObject obj = objs[i];
 			if (obj.isNativeText()) {
@@ -112,7 +110,7 @@ public final class OBJSystem extends NATNil {
 	/**
 	 * def println(@obj) { self.print(#[@obj, '\n']) }
 	 */
-	public ATNil base_println(ATObject[] objs) throws NATException {
+	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
 		IATIO._INSTANCE_.println();
 		return NATNil._INSTANCE_;
