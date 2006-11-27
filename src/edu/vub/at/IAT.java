@@ -52,6 +52,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
@@ -93,7 +94,7 @@ public final class IAT {
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
 	private static final String _ENV_AT_HOME_ = "AT_HOME";
 	
-	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.alloc("system");
+	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.jAlloc("system");
 	
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
@@ -278,7 +279,7 @@ public final class IAT {
 				}
 			} else {
 				// use the default init file provided with the distribution
-				initFile = new File(IAT.class.getResource("/edu/vub/at/init/init.at").toURI());
+				initFile = new File(new URI(IAT.class.getResource("/edu/vub/at/init/init.at").toString()));
 			}
 			
 			String initCode = Evaluator.loadContentOfFile(initFile);
@@ -451,7 +452,7 @@ public final class IAT {
 			for (int i = 0; i < slots.length; i++) {
 				ATField f = (ATField) slots[i];
 				System.out.print(f.base_getName().base_getText().asNativeText().javaValue);
-				System.out.println("=" + f.base_getValue().meta_print().javaValue);
+				System.out.println("=" + f.base_readField().meta_print().javaValue);
 			}
 		} catch (InterpreterException e) {
 			e.printStackTrace();
