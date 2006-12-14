@@ -194,7 +194,7 @@ public final class IAT {
 	 * The slot name corresponds to the last name of the directory. The slot value corresponds
 	 * to a namespace object initialized with the directory.
 	 * 
-	 * If the user did not specify an objectpath, the default is .;$AT_OBJECTPATH;$AT_HOME
+	 * If the user did not specify an objectpath, the default is .:$AT_OBJECTPATH:$AT_HOME
 	 */
 	private static void initLobbyUsingObjectPath() {
 		if (_OBJECTPATH_ARG_ == null) {
@@ -205,8 +205,8 @@ public final class IAT {
 			   (envHome == null ? "" : (";"+envHome));
 		}
 		
-		// split the object path using its ';' separator
-		String[] paths = _OBJECTPATH_ARG_.split(";");
+		// split the object path using its ':' separator
+		String[] paths = _OBJECTPATH_ARG_.split(":");
 
 		NATObject lobby = Evaluator.getLobbyNamespace();
 		

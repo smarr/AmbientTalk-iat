@@ -21,7 +21,7 @@ AT_OBJECTPATH: default objectpath to use (is prefixed by '.' and suffixed by AT_
 Command Line Options: \n \
  -i, --init init-file: specifies which file to load as the preamble of the language \n \
     (the content of this file is evaluated in the context of the global lexical root) \n \
- -o, --objectpath objectpath: specifies the object-path, a list of directories separated by ';' \n \
+ -o, --objectpath objectpath: specifies the object-path, a list of directories separated by ':' \n \
     which contain the necessary libraries \n \
  -e, --eval codestring: evaluates the given codestring and ignores the filename \n \
  -p, --print print value of last evaluated expression, then quit instead of entering REPL \n \
