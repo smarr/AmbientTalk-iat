@@ -27,34 +27,41 @@
  */
 package edu.vub.at;
 
-import edu.vub.at.eval.Evaluator;
-import edu.vub.at.exceptions.InterpreterException;
-import edu.vub.at.exceptions.XDuplicateSlot;
-import edu.vub.at.exceptions.XParseError;
-import edu.vub.at.objects.ATAbstractGrammar;
-import edu.vub.at.objects.ATField;
-import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.grammar.ATSymbol;
-import edu.vub.at.objects.mirrors.Reflection;
-import edu.vub.at.objects.natives.NATContext;
-import edu.vub.at.objects.natives.NATNamespace;
-import edu.vub.at.objects.natives.NATNil;
-import edu.vub.at.objects.natives.NATObject;
-import edu.vub.at.objects.natives.OBJSystem;
-import edu.vub.at.objects.natives.grammar.AGSymbol;
-import edu.vub.at.parser.NATParser;
-
-import gnu.getopt.Getopt;
-import gnu.getopt.LongOpt;
-
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
+
+import edu.vub.at.actors.ATAsyncMessage;
+import edu.vub.at.actors.natives.NATActor;
+import edu.vub.at.actors.natives.NATVirtualMachine;
+import edu.vub.at.actors.natives.events.VMEmittedEvents;
+import edu.vub.at.eval.Evaluator;
+import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XParseError;
+import edu.vub.at.objects.ATAbstractGrammar;
+import edu.vub.at.objects.ATClosure;
+import edu.vub.at.objects.ATField;
+import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.grammar.ATBegin;
+import edu.vub.at.objects.natives.NATAsyncMessage;
+import edu.vub.at.objects.natives.NATClosure;
+import edu.vub.at.objects.natives.NATContext;
+import edu.vub.at.objects.natives.NATMethod;
+import edu.vub.at.objects.natives.NATNamespace;
+import edu.vub.at.objects.natives.NATObject;
+import edu.vub.at.objects.natives.NATTable;
+import edu.vub.at.objects.natives.NATText;
+import edu.vub.at.objects.natives.OBJSystem;
+import edu.vub.at.objects.natives.grammar.AGBegin;
+import edu.vub.at.objects.natives.grammar.AGDefField;
+import edu.vub.at.objects.natives.grammar.AGSymbol;
+import edu.vub.at.parser.NATParser;
+import gnu.getopt.Getopt;
+import gnu.getopt.LongOpt;
 
 /**
  * IAT is the main entry point for the 'iat' Interactive AmbientTalk shell.
@@ -123,9 +130,12 @@ public final class IAT {
 	public static boolean _VERSION_ARG_ = false;
 	public static boolean _QUIET_ARG_ = false;
 	
-	// The global evaluation context
-	// set to the correct evaluation context to be used in the REPL by loadMainCode()
-	private static NATContext _globalContext;
+	// The actor serving as iat's global evaluation context
+	// set to the correct evaluation context to be used in the REPL by boot()
+	private static NATActor _evaluator;
+	
+	// Barrier in the read-eval-print loop allowing the evaluator to compute the results
+	private static IATSynchronizer _barrier;
 	
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
@@ -196,7 +206,7 @@ public final class IAT {
 	 * 
 	 * If the user did not specify an objectpath, the default is .:$AT_OBJECTPATH:$AT_HOME
 	 */
-	private static void initLobbyUsingObjectPath() {
+	private static String initObjectPath() {
 		if (_OBJECTPATH_ARG_ == null) {
 			String envObjPath = System.getProperty(_ENV_AT_OBJECTPATH_);
 			String envHome = System.getProperty(_ENV_AT_HOME_);
@@ -204,70 +214,59 @@ public final class IAT {
 			   (envObjPath == null ? "" : (";"+envObjPath)) +
 			   (envHome == null ? "" : (";"+envHome));
 		}
-		
-		// split the object path using its ':' separator
-		String[] paths = _OBJECTPATH_ARG_.split(":");
-
-		NATObject lobby = Evaluator.getLobbyNamespace();
-		
-		// for each path to the lobby, add an entry for each directory in the path
-		for (int i = 0; i < paths.length; i++) {
-			File pathfile = new File(paths[i]);
-			
-			// check whether the given pathfile is a directory
-			if (!pathfile.isDirectory()) {
-			    abort("Error: non-directory file on classpath: " + pathfile.getAbsolutePath());
-			}
-			
-			if (!pathfile.isAbsolute()) {
-				try {
-					pathfile = pathfile.getCanonicalFile();
-				} catch (IOException e) {
-					abort("Fatal error while constructing objectpath: " + e.getMessage());
-				}
-			}
-			
-			File[] filesInDirectory = pathfile.listFiles(new FilenameFilter() {
-				// filter out all hidden files (starting with .)
-				public boolean accept(File parent, String name) {
-					return !(name.startsWith("."));
-				}
-			});
-			for (int j = 0; j < filesInDirectory.length; j++) {
-				File subdir = filesInDirectory[j];
-				if (subdir.isDirectory()) {
-					// convert the filename into an AmbientTalk selector
-					ATSymbol selector = Reflection.downSelector(subdir.getName());
-					try {
-						lobby.meta_defineField(selector, new NATNamespace("/"+subdir.getName(), subdir));
-					} catch (XDuplicateSlot e) {
-						warn("shadowed path on classpath: "+subdir.getAbsolutePath());
-					} catch (InterpreterException e) {
-						// should not happen as the meta_defineField is native
-						abort("Fatal error while constructing objectpath: " + e.getMessage());
-					}	
-				} else {
-					warn("skipping non-directory file on classpath: " + subdir.getName());
-				}
-			}
-		}
-
-	}
-	
-	private static void initSystemObject() {
-		try {
-			Evaluator.getGlobalLexicalScope().meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
-		} catch (XDuplicateSlot e) {
-			// should not happen because the global lexical scope is empty at this point
-			abort("Failed to initialize system object: 'system' name already bound in global scope.");
-		} catch (InterpreterException e) {
-			// should again never happen because the meta_defineField is native
-			abort("Failed to initialize system object: " + e.getMessage());
-		}
+		return _OBJECTPATH_ARG_;
 	}
 	
 	
-	private static ATObject loadInitCode() {
+	private static ATClosure iatInitializer() throws XParseError {
+		ATBegin executorCode;
+		
+		if(_FILE_ARG_ != null) {
+			// define ~ in terms of the location of the main file
+			
+			File main = new File(_FILE_ARG_);
+			
+			if (!main.exists())
+				abort("Main file does not exist: " + main.getName());
+			
+ 			executorCode = new AGBegin(NATTable.atValue(new ATObject[] {
+					// System Object
+					new AGDefField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_)),
+					// ~ allows accessing the namespace around the main file
+					new AGDefField(Evaluator._CURNS_SYM_, new NATNamespace("/"+main.getName(), main)),
+					// to execute code inside the scope of an actor
+					NATParser.parse("iat-executor", "def execute: code { eval: code in: self };")}));
+		} else {
+			// if no mainfile is passed there is no useful semantics for ~, hence it is not defined
+			executorCode = new AGBegin(NATTable.atValue(new ATObject[] {
+					// System Object
+					new AGDefField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_)),
+					// to execute code inside the scope of an actor
+					NATParser.parse("iat-executor", "def execute: code { eval: code in: self };")}));
+		}
+		
+		return new NATClosure(
+				new NATMethod(
+						AGSymbol.jAlloc("executor"),
+						NATTable.EMPTY,
+						executorCode),
+						// TODO(scoping for actors) Context of the closure is irrelevant since it is replaced by the NATActor
+						new NATContext(null,null,null));
+		
+	}
+//	private static void initSystemObject() {
+//		try {
+//			Evaluator.getGlobalLexicalScope().meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
+//		} catch (XDuplicateSlot e) {
+//			// should not happen because the global lexical scope is empty at this point
+//			abort("Failed to initialize system object: 'system' name already bound in global scope.");
+//		} catch (InterpreterException e) {
+//			// should again never happen because the meta_defineField is native
+//			abort("Failed to initialize system object: " + e.getMessage());
+//		}
+//	}
+		
+	private static String loadInitCode() {
 		File initFile = null;
 		// first, load the proper code from the init file
 		try {
@@ -282,21 +281,12 @@ public final class IAT {
 				initFile = new File(new URI(IAT.class.getResource("/edu/vub/at/init/init.at").toString()));
 			}
 			
-			String initCode = Evaluator.loadContentOfFile(initFile);
-			
-			// evaluate the initialization code in the context of the global scope
-			NATObject globalScope = Evaluator.getGlobalLexicalScope();
-			NATContext initCtx = new NATContext(globalScope, globalScope, globalScope.meta_getDynamicParent());
-			return parseAndEval(initCode, initFile.getName(), initCtx);
 		} catch (URISyntaxException e) {
 			// should not happen as the default init.at file should exist at a valid location
 			abort("Could not locate default init file: "+e.getMessage());
-		} catch (IOException e) {
-			abort("Error reading the init file: "+e.getMessage());
-		} catch (InterpreterException e) {
-			abort("Error retrieving dynamic parent of lexroot: " + e.getMessage());
 		}
-		return NATNil._INSTANCE_;
+		
+		return initFile.getAbsolutePath();
 	}
 	
 	/**
@@ -307,14 +297,12 @@ public final class IAT {
 	 * @return the result of evaluating the main initialization file or the -e option; null if
 	 * no main file or -e option were specified.
 	 */
-	private static ATObject loadMainCode() {
+	private static String loadMainCode() {
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
 		String startupCode = null;
-		NATObject mainEvalScope = null;
 		if (_EVAL_ARG_ != null) {
 			// evaluate the -e code and disregard the main file
 			startupCode = _EVAL_ARG_;
-			mainEvalScope = new NATObject();
 		} else if(_FILE_ARG_ != null) {
 			// evaluate the main file
 			File main = new File(_FILE_ARG_);
@@ -326,70 +314,65 @@ public final class IAT {
 				} catch (IOException e) {
 					abort("Error reading main file: "+e.getMessage());
 				}
-				mainEvalScope = NATNamespace.createFileScopeFor(new NATNamespace("/"+main.getName(), main));
 			}
-		} else {
-			// no -e option and no main argument file given, the main namespace is a simple empty object
-			mainEvalScope = new NATObject();
 		}
 		
-		try {
-			_globalContext = new NATContext(mainEvalScope, mainEvalScope, mainEvalScope.meta_getDynamicParent());
-		} catch (InterpreterException e) {
-			abort("Error retrieving dynamic parent of main scope: " + e.getMessage());
-		}
-		
-		// if either -e or a main file were specified, evaluate the code now
-		if (startupCode != null) {
-			// parse startup code, passing along the correct filename, which is 'option' in case of -e code
-			return parseAndEval(startupCode, _FILE_ARG_ == null ? "option": _FILE_ARG_ ,_globalContext);
-		} else
-		    return NATNil._INSTANCE_;
+		return startupCode;
 	}
 	
 	/**
-	 * Continually reads input, evaluates it and prints out the result.
-	 * The evaluation context used is specified in the static variable _globalContext.
+	 * Reads a single line of input, and schedules it for evaluation. The result will
+	 * be printed as a result of proceed, which is invoked by the IATSynchronizer. 
+	 * The continual reading is ensured as that method in its turn calls readEvalPrintLoop
 	 */
 	private static void readEvalPrintLoop() {
 		String input;
 		try {
 			while ((input = readFromConsole()) != null) {
-				ATObject value = parseAndEval(input, "console", _globalContext);
-				if (value != null) {
-					printToConsole(Evaluator.toString(value));
-				}
+				parseAndSend(input, "console");
 			}
 		} catch (IOException e) {
 			abort("Error reading input: "+e.getMessage());
 		}
 	}
 	
+	static void proceed(ATObject result) {
+		printToConsole(result.toString());
+	}
+	
 	/**
 	 * Performs the main boot sequence of the AmbientTalk VM and environment:
-	 * 1) (performed automatically by edu.vub.at.Evaluator): create a global lexical scope and a lobby
-	 * 2) initialize the lobby using the specified or default object path
-	 * 3) load the specified or default init file and evaluate it
-	 * 4) load the specified main file or -e code and evaluate it (in the global context)
+	 * 1) Create a virtual machine using the correct object path and actor initialisation
+	 * 2) Create a new actor which knows how to interface with IAT (it knows execute: and the system object)
+	 * 3) Create a barrier which allows synchronizing between an actor and the REPL
+	 * 4) Ensure the barrier is informed of results by registering it as an observer
+ 	 * 5) Send the main code specified by the user to be executed by the actor.
 	 * 
-	 * An important side-effect of calling boot is that the variable _globalContext will point
-	 * to the correct global evaluation context to use (e.g. in the REPL)
+	 * An important side-effect of calling boot is that the variable _evaluator will 
+	 * point to a newly create actor serving as iat's global evaluation context.
 	 * 
 	 * @return the result of evaluating the main file or -e code; nil if none of both was specified
 	 */
-	public static ATObject boot() {
-		// initialize the lobby using the object path
-		initLobbyUsingObjectPath();
-		printObjectPath();
-		
-		// bind 'system' in the global scope to a system object
-		initSystemObject();
-		
-         // load the init file
-		loadInitCode();
-		
-		// load the code from the main argument file (or the code specified using -e)
-		return loadMainCode();
+	public static void boot() {
+		try {
+			// initialize the virtual machine using object path and init file
+			NATVirtualMachine virtualMachine = new NATVirtualMachine(
+					NATText.atValue(initObjectPath()),
+					NATText.atValue(loadInitCode()));
+			
+			// create a new actor on this vm with the appropriate main body.
+			_evaluator = new NATActor(virtualMachine, iatInitializer());
+			
+			// create a barrier synchronizing message sends and results for the read eval print loop
+			_barrier = new IATSynchronizer();
+			
+			// barriers need to know when results were produced
+			_evaluator.base_upon_do_(NATActor._PROCESSED_, _barrier);
+			
+			parseAndSend(loadMainCode(), _EVAL_ARG_ == null?_FILE_ARG_:"command line");
+		} catch (InterpreterException e) {
+			abort(e.getMessage());
+		}
 	}
 	
 	/**
@@ -429,10 +412,7 @@ public final class IAT {
 		processInformativeArguments();
 		
 		// enter the main boot sequence
-		ATObject mainEvalResult = boot();
-		
-		// print the result of evaluating the main file
-		printToConsole(mainEvalResult.toString());
+		boot();
 		
          // if -p was specified, quit immediately
 	    if (_PRINT_ARG_)
@@ -459,16 +439,24 @@ public final class IAT {
 		}
 	}
 	
-	private static ATObject parseAndEval(String code, String inFile, NATContext ctx) {
+	private static void parseAndSend(String code, String inFile) {
 		try {
 			ATAbstractGrammar ast = NATParser.parse(inFile, code);
-			return ast.meta_eval(ctx);
+			ATAsyncMessage msg = new NATAsyncMessage(
+					_evaluator,
+					_evaluator.base_getBehaviour(),
+					AGSymbol.jAlloc("execute:"),
+					NATTable.atValue(new ATObject[] { ast }));
+			
+			_evaluator.base_scheduleEvent(VMEmittedEvents.acceptMessage(msg));
+			
+			_barrier.yield(msg);
+			
 		} catch (XParseError e) {
 			handleParseError(e);
 		} catch (InterpreterException e) {
 			handleATException(e);
 		}
-		return NATNil._INSTANCE_;
 	}
 	
 	private static void handleParseError(XParseError e) {

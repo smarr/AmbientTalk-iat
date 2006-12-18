@@ -162,7 +162,8 @@ public final class OBJSystem extends NATNil {
 	 */
 	public ATObject base_reset() {
 		Evaluator.resetEnvironment();
-		return IAT.boot();
+		IAT.boot();
+		return NATNil._INSTANCE_;
 	}
 
 }
