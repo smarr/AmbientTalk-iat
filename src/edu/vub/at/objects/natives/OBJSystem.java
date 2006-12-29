@@ -57,7 +57,7 @@ import java.io.IOException;
  *
  * @author tvc
  */
-public final class OBJSystem extends NATNil {
+public final class OBJSystem extends NATByCopy {
 
 	private NATTable argv_ = null;
 	
