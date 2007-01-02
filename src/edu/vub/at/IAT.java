@@ -27,29 +27,20 @@
  */
 package edu.vub.at;
 
-import edu.vub.at.actors.eventloops.BlockingFuture;
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
-import edu.vub.at.actors.natives.NATLocalFarRef;
+import edu.vub.at.actors.natives.Packet;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
-import edu.vub.at.objects.ATClosure;
 import edu.vub.at.objects.ATField;
 import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.grammar.ATBegin;
-import edu.vub.at.objects.natives.NATClosure;
-import edu.vub.at.objects.natives.NATContext;
-import edu.vub.at.objects.natives.NATMethod;
+import edu.vub.at.objects.natives.NATIsolate;
 import edu.vub.at.objects.natives.NATNamespace;
-import edu.vub.at.objects.natives.NATNil;
 import edu.vub.at.objects.natives.NATObject;
-import edu.vub.at.objects.natives.NATTable;
 import edu.vub.at.objects.natives.OBJSystem;
-import edu.vub.at.objects.natives.grammar.AGBegin;
-import edu.vub.at.objects.natives.grammar.AGDefField;
 import edu.vub.at.objects.natives.grammar.AGSymbol;
 import edu.vub.at.parser.NATParser;
 
@@ -214,33 +205,25 @@ public final class IAT {
 		return _OBJECTPATH_ARG_;
 	}
 	
-	private static ATClosure iatInitializer() throws XParseError {
-		ATBegin executorCode;
-		
-		if(_FILE_ARG_ != null) {
-			// define ~ in terms of the location of the main file
-			
-			File main = new File(_FILE_ARG_);
-			
-			if (!main.exists())
-				abort("Main file does not exist: " + main.getName());
-			
- 			executorCode = new AGBegin(NATTable.atValue(new ATObject[] {
-					// System Object
-					new AGDefField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_)),
-					// ~ allows accessing the namespace around the main file
-					new AGDefField(Evaluator._CURNS_SYM_, new NATNamespace("/"+main.getName(), main)) }));
-		} else {
-			// if no mainfile is passed there is no useful semantics for ~, hence it is not defined
-			executorCode = new AGBegin(NATTable.atValue(new ATObject[] {
-					// System Object
-					new AGDefField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_)) }));
-		}
-		
+	private static NATIsolate iatInitializer() throws XParseError {
+		NATIsolate isolate = new NATIsolate();
+				
 		try {
-			return new NATClosure(
-					new NATMethod(AGSymbol.jAlloc("executor"), NATTable.EMPTY, executorCode),
-					new NATContext(NATNil._INSTANCE_,NATNil._INSTANCE_,NATNil._INSTANCE_));
+			// Define the System Object
+			isolate.meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
+			
+			if(_FILE_ARG_ != null) {
+				// define ~ in terms of the location of the main file
+				
+				File main = new File(_FILE_ARG_);
+				if (!main.exists())
+					abort("Main file does not exist: " + main.getName());
+				
+				// ~ allows accessing the namespace around the main file
+				isolate.meta_defineField(Evaluator._CURNS_SYM_, new NATNamespace("/"+main.getName(), main));
+			}
+			
+			return isolate;
 		} catch (InterpreterException e) {
 			// impossible: we constructed the method by hand, so we are sure
 			// that it has no illegal parameter list
@@ -392,10 +375,13 @@ public final class IAT {
 				new ELVirtualMachine(computeObjectPath(initObjectPathString()), parseInitFile());
 			
 			// create a new actor on this vm with the appropriate main body.
-			BlockingFuture bhvFuture = NATActorMirror.atValue(virtualMachine, iatInitializer());
-			_evaluator = ((NATLocalFarRef) bhvFuture.get()).getFarHost();
+			_evaluator = NATActorMirror.atValue(
+					virtualMachine,
+					new Packet("behaviour", iatInitializer()),
+					new NATActorMirror(virtualMachine)).getFarHost();
 			
 			String mainCode = loadMainCode();
+			
 			if (mainCode != null) {
 				parseAndSend(mainCode, _EVAL_ARG_ == null?_FILE_ARG_:"command line");
 			}
@@ -471,7 +457,7 @@ public final class IAT {
 	private static void parseAndSend(final String code, final String inFile) {
 		try {
 			ATAbstractGrammar ast = NATParser.parse(inFile, code);
-			ATObject result = _evaluator.sync_event_nativeEval(ast);
+			ATObject result = _evaluator.sync_event_eval(ast);
 			
 			// wait for evaluation result
 			printToConsole(result.toString());
