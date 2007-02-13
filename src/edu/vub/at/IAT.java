@@ -47,9 +47,12 @@ import edu.vub.at.parser.NATParser;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -278,27 +281,20 @@ public final class IAT {
 	}
 	
 	private static ATAbstractGrammar parseInitFile() throws InterpreterException {
-		File initFile = null;
 		// first, load the proper code from the init file
 		try {
 			if (_INIT_ARG_ != null) {
 				// the user specified a custom init file
-				initFile = new File(_INIT_ARG_);
+				File initFile = new File(_INIT_ARG_);
 				if (!initFile.exists()) {
 					abort("Unknown init file: "+_INIT_ARG_);
 				}
+				return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
 			} else {
 				// use the default init file provided with the distribution
-				initFile = new File(new URI(IAT.class.getResource("/edu/vub/at/init/init.at").toString()));
+				InputStream initstream = IAT.class.getResourceAsStream("/edu/vub/at/init/init.at");
+				return NATParser.parse("init.at", initstream);
 			}
-			
-		} catch (URISyntaxException e) {
-			// should not happen as the default init.at file should exist at a valid location
-			abort("Could not locate default init file: "+e.getMessage());
-		}
-		
-		try {
-			return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
 		} catch (XParseError e) {
 			handleParseError(e);
 			abort("Parse error in init file, aborting");
@@ -420,21 +416,26 @@ public final class IAT {
 	 * @param args arguments passed to the JVM, which should all be interpreted as arguments to 'iat'
 	 */
 	public static void main(String[] args) {
-		// parse the command-line options
-		parseArguments(args);
-		
-		// handle -help or -version arguments
-		processInformativeArguments();
-		
-		// enter the main boot sequence
-		boot();
-		
-         // if -p was specified, quit immediately
-	    if (_PRINT_ARG_)
-	    	    System.exit(0);
-		
-        // go into the REPL
-		readEvalPrintLoop();
+		try {
+			// parse the command-line options
+			parseArguments(args);
+			
+			// handle -help or -version arguments
+			processInformativeArguments();
+			
+			// enter the main boot sequence
+			boot();
+			
+			 // if -p was specified, quit immediately
+			if (_PRINT_ARG_)
+				    System.exit(0);
+			
+			// go into the REPL
+			readEvalPrintLoop();
+		} catch (RuntimeException e) {
+			System.err.println("Fatal error, quitting");
+			e.printStackTrace();
+		}
 	}
 	
 	// AUXILIARY FUNCTIONS
@@ -475,14 +476,14 @@ public final class IAT {
 	private static void handleParseError(XParseError e) {
 		System.out.println("parse error in "+e.getMessage());
 		// try to mark the parse error on the console if that info is available
-		String code = e.getErroneousCode();
+		InputStream code = e.getErroneousCode();
 		
 		if (code != null) {
 			try {
 				int lineNo = e.getLine();
 				int colNo = e.getColumn();
 				
-				BufferedReader reader = new BufferedReader(new StringReader(code));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(code));
 				int lineCount = 0;
 				String line = "";
 				
