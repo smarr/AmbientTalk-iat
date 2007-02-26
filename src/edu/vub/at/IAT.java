@@ -31,6 +31,7 @@ import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
 import edu.vub.at.actors.natives.Packet;
+import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XParseError;
@@ -41,6 +42,9 @@ import edu.vub.at.objects.natives.NATIsolate;
 import edu.vub.at.objects.natives.NATNamespace;
 import edu.vub.at.objects.natives.NATObject;
 import edu.vub.at.objects.natives.OBJSystem;
+import edu.vub.at.objects.natives.SAFLobby;
+import edu.vub.at.objects.natives.SAFSystem;
+import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.objects.natives.grammar.AGSymbol;
 import edu.vub.at.parser.NATParser;
 
@@ -95,9 +99,7 @@ public final class IAT {
 	private static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
 	private static final String _ENV_AT_HOME_ = "AT_HOME";
-	
-	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.jAlloc("system");
-	
+		
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
 	private static String _OUTPUT_PROMPT_;
@@ -208,51 +210,11 @@ public final class IAT {
 		return _OBJECTPATH_ARG_;
 	}
 	
-	private static NATIsolate iatInitializer() throws XParseError {
-		NATIsolate isolate = new NATIsolate();
-				
-		try {
-			// Define the System Object
-			isolate.meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
-			
-			if(_FILE_ARG_ != null) {
-				// define ~ in terms of the location of the main file
-				
-				File main = new File(_FILE_ARG_);
-				if (!main.exists())
-					abort("Main file does not exist: " + main.getName());
-				
-				// ~ allows accessing the namespace around the main file
-				isolate.meta_defineField(Evaluator._CURNS_SYM_, new NATNamespace("/"+main.getName(), main));
-			}
-			
-			return isolate;
-		} catch (InterpreterException e) {
-			// impossible: we constructed the method by hand, so we are sure
-			// that it has no illegal parameter list
-			e.printStackTrace();
-			System.exit(0);
-			return null;
-		}
-	}
-//	private static void initSystemObject() {
-//		try {
-//			Evaluator.getGlobalLexicalScope().meta_defineField(_SYSTEM_SYM_, new OBJSystem(_ARGUMENTS_ARG_));
-//		} catch (XDuplicateSlot e) {
-//			// should not happen because the global lexical scope is empty at this point
-//			abort("Failed to initialize system object: 'system' name already bound in global scope.");
-//		} catch (InterpreterException e) {
-//			// should again never happen because the meta_defineField is native
-//			abort("Failed to initialize system object: " + e.getMessage());
-//		}
-//	}
-	
-	
 	/*
 	 * Given a textual object path computes and verifies all passed entries to see
 	 * whether they exist and whether they are proper directories.
 	 */
-	private static final File[] computeObjectPath(String objectPath) {
+	private static final SAFLobby computeObjectPath(String objectPath) {
 		// split the object path using its ':' separator
 		String[] roots = objectPath.split(":");
 		File[] objectPathRoots = new File[roots.length];
@@ -277,7 +239,30 @@ public final class IAT {
 			objectPathRoots[i] = pathfile;
 		}
 		
-		return objectPathRoots;
+		return new SAFLobby(objectPathRoots);
+	}
+	
+	/*
+	 * Given a main file, derives the relative directory, when no such file exists uses the
+	 * "user.dir" from java.
+	 */
+	private static final SAFWorkingDirectory computeWorkingDirectory() {
+		if (_FILE_ARG_ != null) {
+			// define ~ in terms of the location of the main file
+
+			File main = new File(_FILE_ARG_);
+			if (main.exists()) {
+				// if main file is valid ~ is its enclosing directory
+				
+				File workingDirectory = main.getParentFile();
+				if(workingDirectory != null && workingDirectory.exists()) {
+					return new SAFWorkingDirectory(workingDirectory);
+				}
+			}
+		} 
+		
+		// In all other cases...
+		return new SAFWorkingDirectory();
 	}
 	
 	private static ATAbstractGrammar parseInitFile() throws InterpreterException {
@@ -366,14 +351,15 @@ public final class IAT {
 	 */
 	public static void boot() {
 		try {
+			
 			// initialize the virtual machine using object path and init file
 			ELVirtualMachine virtualMachine =
-				new ELVirtualMachine(computeObjectPath(initObjectPathString()), parseInitFile());
-			
+				new ELVirtualMachine(parseInitFile(), new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_), computeWorkingDirectory(), computeObjectPath(initObjectPathString()) });
+						
 			// create a new actor on this vm with the appropriate main body.
 			_evaluator = NATActorMirror.atValue(
 					virtualMachine,
-					new Packet("behaviour", iatInitializer()),
+					new Packet("behaviour", new NATIsolate()),
 					new NATActorMirror(virtualMachine)).getFarHost();
 			
 			String mainCode = loadMainCode();
