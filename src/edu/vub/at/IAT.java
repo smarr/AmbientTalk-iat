@@ -38,28 +38,20 @@ import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATField;
 import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.natives.NATIsolate;
-import edu.vub.at.objects.natives.NATNamespace;
 import edu.vub.at.objects.natives.NATObject;
-import edu.vub.at.objects.natives.OBJSystem;
 import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
-import edu.vub.at.objects.natives.grammar.AGSymbol;
 import edu.vub.at.parser.NATParser;
 
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Properties;
 
 /**
@@ -359,7 +351,7 @@ public final class IAT {
 			// create a new actor on this vm with the appropriate main body.
 			_evaluator = NATActorMirror.atValue(
 					virtualMachine,
-					new Packet("behaviour", new NATIsolate()),
+					new Packet("behaviour", NATObject.createIsolate()),
 					new NATActorMirror(virtualMachine)).getFarHost();
 			
 			String mainCode = loadMainCode();
