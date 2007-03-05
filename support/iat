@@ -1,2 +1,11 @@
 #!/bin/sh
-java -classpath $AT_HOME/lib/java-getopt-1.0.13.jar:$AT_HOME/lib/antlr.jar:$AT_HOME/ambienttalk2.jar edu.vub.at.IAT "$@"
+
+JARS=`ls lib/*.jar lib/JGroups-2.4.0.bin/*.jar`
+JARPATH="ambienttalk2.jar"
+
+for JAR in $JARS;
+do
+	JARPATH="$JARPATH:$JAR"
+done
+
+java -classpath $JARPATH edu.vub.at.IAT "$@" 2> /dev/console
