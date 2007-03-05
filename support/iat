@@ -1,11 +1,17 @@
 #!/bin/sh
 
-JARS=`ls lib/*.jar lib/JGroups-2.4.0.bin/*.jar`
-JARPATH="ambienttalk2.jar"
+# extracts the path where the 'iat' shell script is located
+CURRENTWD=`dirname $0`
+# automatically extract all .jar files in the lib subdirectory
+JARS=`ls $CURRENTWD/lib/*.jar $CURRENTWD/lib/JGroups-2.4.0.bin/*.jar`
+JARPATH="$CURRENTWD/ambienttalk2.jar"
 
+# append the .jar files using ':' to construct a valid classpath
 for JAR in $JARS;
 do
 	JARPATH="$JARPATH:$JAR"
 done
 
+# invoke the IAT shell via the JVM, pipe System.err to the console
+# any parameters to the script are passed to IAT
 java -classpath $JARPATH edu.vub.at.IAT "$@" 2> /dev/console
