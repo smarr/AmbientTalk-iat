@@ -30,7 +30,6 @@ package edu.vub.at;
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
-import edu.vub.at.actors.natives.Packet;
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
@@ -349,10 +348,7 @@ public final class IAT {
 				new ELVirtualMachine(parseInitFile(), new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_), computeWorkingDirectory(), computeObjectPath(initObjectPathString()) });
 						
 			// create a new actor on this vm with the appropriate main body.
-			_evaluator = NATActorMirror.atValue(
-					virtualMachine,
-					new Packet("behaviour", NATObject.createIsolate()),
-					new NATActorMirror(virtualMachine)).getFarHost();
+			_evaluator = NATActorMirror.createEmptyActor(virtualMachine, new NATActorMirror(virtualMachine)).getFarHost();
 			
 			String mainCode = loadMainCode();
 			
