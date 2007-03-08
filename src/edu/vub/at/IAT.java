@@ -31,13 +31,12 @@ import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
 import edu.vub.at.actors.natives.SharedActorField;
+import edu.vub.at.actors.net.Logging;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
-import edu.vub.at.objects.ATField;
 import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.natives.NATObject;
 import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
@@ -48,9 +47,11 @@ import gnu.getopt.LongOpt;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.LinkedList;
 import java.util.Properties;
 
 /**
@@ -188,31 +189,52 @@ public final class IAT {
 	 * The slot name corresponds to the last name of the directory. The slot value corresponds
 	 * to a namespace object initialized with the directory.
 	 * 
-	 * If the user did not specify an objectpath, the default is .:$AT_OBJECTPATH:$AT_HOME
+	 * If the user did not specify an objectpath, the default is $AT_OBJECTPATH:at=$AT_HOME/at
 	 */
 	private static String initObjectPathString() {
+		// if -o was not used, consult the AT_OBJECTPATH environment variable
 		if (_OBJECTPATH_ARG_ == null) {
 			String envObjPath = System.getProperty(_ENV_AT_OBJECTPATH_);
-			String envHome = System.getProperty(_ENV_AT_HOME_);
-			_OBJECTPATH_ARG_ = System.getProperty("user.dir") +
-			   (envObjPath == null ? "" : (":"+envObjPath)) +
-			   (envHome == null ? "" : (":"+envHome));
+			_OBJECTPATH_ARG_ = (envObjPath == null ? "" : (":"+envObjPath));
+		}
+		// always append the entry ':at=$AT_HOME/at'
+		String atHome = System.getProperty(_ENV_AT_HOME_);
+		if (atHome != null) {
+		  _OBJECTPATH_ARG_ += ":at="+atHome+"/at";
 		}
 		return _OBJECTPATH_ARG_;
 	}
 	
-	/*
-	 * Given a textual object path computes and verifies all passed entries to see
-	 * whether they exist and whether they are proper directories.
+	/**
+	 * Given a textual description of the object path, of the form:
+	 * name1=path1:name2=path2:...
+	 * 
+	 * creates a listing:
+	 * name1 -> File(path1)
+	 * name2 -> File(path2)
+	 * ...
+	 * 
+	 * and uses the listing to initialize the lobby of the actors.
 	 */
 	private static final SAFLobby computeObjectPath(String objectPath) {
-		// split the object path using its ':' separator
-		String[] roots = objectPath.split(":");
-		File[] objectPathRoots = new File[roots.length];
+		// split the object path using its path separator (normally ':')
+		String[] roots = objectPath.split(System.getProperty("path.separator"));
+		LinkedList namedPaths = new LinkedList();
 		
-		// for each path to the lobby, add an entry for each directory in the path
+		// for each named file path, add an entry to the mapping
 		for (int i = 0; i < roots.length; i++) {
-			File pathfile = new File(roots[i]);
+			if (roots[i].length()==0) {
+				continue; // skip empty entries
+			}
+			
+			// extract name = path components
+			String[] pair = roots[i].split("=");
+			if (pair.length != 2) {
+				abort("Error: invalid name=path entry on object path: " + roots[i]);
+			}
+			
+			String name = pair[0];
+			File pathfile = new File(pair[1]);
 			
 			// check whether the given pathfile is a directory
 			if (!pathfile.isDirectory()) {
@@ -226,11 +248,11 @@ public final class IAT {
 					abort("Fatal error while constructing objectpath: " + e.getMessage());
 				}
 			}
-			
-			objectPathRoots[i] = pathfile;
+			Logging.Init_LOG.info("Added entry to object path: " + name + "=" + pathfile.getPath());
+			namedPaths.add(new Object[] { name, pathfile });
 		}
 		
-		return new SAFLobby(objectPathRoots);
+		return new SAFLobby(namedPaths);
 	}
 	
 	/*
@@ -267,9 +289,18 @@ public final class IAT {
 				}
 				return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
 			} else {
-				// use the default init file provided with the distribution
-				InputStream initstream = IAT.class.getResourceAsStream("/edu/vub/at/init/init.at");
-				return NATParser.parse("init.at", initstream);
+				// use the default init file under $AT_HOME/at/init/init.at provided with the distribution
+				String iatHome = System.getProperty(_ENV_AT_HOME_);
+				if (iatHome == null) {
+					abort("Cannot load init.at: none specified and no AT_HOME environment variable set");
+				} else {
+					File initFile = new File(iatHome, "at/init/init.at");
+					if (initFile.exists()) {
+						return NATParser.parse("init.at", new FileInputStream(initFile));	
+					} else {
+						abort("Cannot load init.at from default location " + initFile.getPath());
+					}
+				}
 			}
 		} catch (XParseError e) {
 			handleParseError(e);
@@ -337,15 +368,16 @@ public final class IAT {
 	 * 
 	 * An important side-effect of calling boot is that the variable _evaluator will 
 	 * point to a newly create actor serving as iat's global evaluation context.
-	 * 
-	 * @return the result of evaluating the main file or -e code; nil if none of both was specified
 	 */
 	public static void boot() {
 		try {
 			
 			// initialize the virtual machine using object path and init file
 			ELVirtualMachine virtualMachine =
-				new ELVirtualMachine(parseInitFile(), new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_), computeWorkingDirectory(), computeObjectPath(initObjectPathString()) });
+				new ELVirtualMachine(parseInitFile(),
+						             new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_),
+					                                                        computeWorkingDirectory(),
+					                                                        computeObjectPath(initObjectPathString()) });
 						
 			// create a new actor on this vm with the appropriate main body.
 			_evaluator = NATActorMirror.createEmptyActor(virtualMachine, new NATActorMirror(virtualMachine)).getFarHost();
@@ -353,7 +385,7 @@ public final class IAT {
 			String mainCode = loadMainCode();
 			
 			if (mainCode != null) {
-				parseAndSend(mainCode, _EVAL_ARG_ == null?_FILE_ARG_:"command line");
+				parseAndSend(mainCode, _EVAL_ARG_ == null ? _FILE_ARG_ : "command line");
 			}
 		} catch (Exception e) {
 			abort(e.getMessage());
@@ -413,21 +445,6 @@ public final class IAT {
 	}
 	
 	// AUXILIARY FUNCTIONS
-	
-	private static void printObjectPath() {
-		try {
-			System.out.println("objectpath = " + _OBJECTPATH_ARG_);
-			NATObject lobby = Evaluator.getLobbyNamespace();
-			ATObject[] slots = lobby.meta_listFields().asNativeTable().elements_;
-			for (int i = 0; i < slots.length; i++) {
-				ATField f = (ATField) slots[i];
-				System.out.print(f.base_getName().base_getText().asNativeText().javaValue);
-				System.out.println("=" + f.base_readField().meta_print().javaValue);
-			}
-		} catch (InterpreterException e) {
-			e.printStackTrace();
-		}
-	}
 	
 	private static void parseAndSend(final String code, final String inFile) {
 		try {
@@ -503,10 +520,6 @@ public final class IAT {
 	private static void abort(String message) {
 		System.err.println(message);
 		System.exit(1);
-	}
-	
-	private static void warn(String message) {
-		System.err.println("[warning] "+message);
 	}
 	
 	private static void printVersion() {

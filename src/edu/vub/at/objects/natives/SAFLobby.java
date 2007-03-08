@@ -27,9 +27,6 @@
  */
 package edu.vub.at.objects.natives;
 
-import java.io.File;
-import java.io.FilenameFilter;
-
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.actors.net.Logging;
 import edu.vub.at.eval.Evaluator;
@@ -40,6 +37,10 @@ import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.grammar.ATSymbol;
 import edu.vub.at.objects.mirrors.Reflection;
 import edu.vub.at.objects.natives.grammar.AGSymbol;
+
+import java.io.File;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 /**
  * SAFLobby initializes the lobby namespace with a slot for each directory in the object path.
@@ -54,9 +55,10 @@ public class SAFLobby extends SharedActorField {
 
 	private static final AGSymbol _LOBBY_SYM_ = AGSymbol.jAlloc("lobby");
 	
-	private final File[] objectPathRoots_;
+	/** a list whose entries are arrays [ pathname:String, dir:File ] */
+	private final LinkedList objectPathRoots_;
 	
-	public SAFLobby(File[] objectPathRoots) {
+	public SAFLobby(LinkedList objectPathRoots) {
 		super(_LOBBY_SYM_);
 		objectPathRoots_ = objectPathRoots;
 	}
@@ -64,37 +66,26 @@ public class SAFLobby extends SharedActorField {
 	public ATObject initialize() throws InterpreterException {
 		NATObject lobby = Evaluator.getLobbyNamespace();
 		
-		// for each path to the lobby, add an entry for each directory in the path
-		for (int i = 0; i < objectPathRoots_.length; i++) {
-			File pathRoot = objectPathRoots_[i];
-							
-			File[] filesInDirectory = pathRoot.listFiles(new FilenameFilter() {
-				// filter out all hidden files (starting with .)
-				public boolean accept(File parent, String name) {
-					return !(name.startsWith("."));
-				}
-			});
-			for (int j = 0; j < filesInDirectory.length; j++) {
-				File subdir = filesInDirectory[j];
-				if (subdir.isDirectory()) {
-					// convert the filename into an AmbientTalk selector
-					ATSymbol selector = Reflection.downSelector(subdir.getName());
-					try {
-						lobby.meta_defineField(selector, new NATNamespace("/"+subdir.getName(), subdir));
-					} catch (XDuplicateSlot e) {
-						// TODO(review) Should throw dedicated exceptions (difference warning - abort)
-						Logging.Init_LOG.error("shadowed path on classpath:", e);
-						throw new XIllegalOperation("shadowed path on classpath: "+subdir.getAbsolutePath());
-					} catch (InterpreterException e) {
-						// should not happen as the meta_defineField is native
-						Logging.Init_LOG.fatal("Fatal error while constructing objectpath:", e);
-						throw new XIllegalOperation("Fatal error while constructing objectpath: " + e.getMessage());
-					}	
-				} else {
-					Logging.Init_LOG.warn("skipping non-directory file on classpath: " + subdir.getName());
-				}
+		// for each entry in the object path, add a namespace slot to the lobby
+		for (Iterator iter = objectPathRoots_.iterator(); iter.hasNext();) {
+			Object[] entry = (Object[]) iter.next();
+			
+			String name = (String) entry[0];
+			File dir = (File) entry[1];
+	
+			// convert the path name into an AmbientTalk selector
+			ATSymbol selector = Reflection.downSelector(name);
+			try {
+			  lobby.meta_defineField(selector, new NATNamespace("/"+name, dir));
+			} catch (XDuplicateSlot e) {
+			  Logging.Init_LOG.warn("Shadowed path on classpath: " + name);
+			} catch (InterpreterException e) {
+			  // should not happen as the meta_defineField is native
+			  Logging.Init_LOG.fatal("Fatal error while constructing objectpath:", e);
+			  throw new XIllegalOperation("Fatal error while constructing objectpath: " + e.getMessage());
 			}
 		}
+		
 		return null;
 	}
 
