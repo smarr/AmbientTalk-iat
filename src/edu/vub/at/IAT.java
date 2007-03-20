@@ -113,6 +113,7 @@ public final class IAT {
 	public static String _INIT_ARG_ = null;
 	public static String _OBJECTPATH_ARG_ = null;
 	public static String _EVAL_ARG_ = null;
+	public static String _NETWORK_NAME_ARG_ = null;
 	
 	public static boolean _PRINT_ARG_ = false;
 	public static boolean _HELP_ARG_ = false;
@@ -126,16 +127,18 @@ public final class IAT {
 	
 	private static void parseArguments(String[] args) {
 		// initialize long options
-		LongOpt[] longopts = new LongOpt[7];
-		longopts[0] = new LongOpt("init", LongOpt.REQUIRED_ARGUMENT, null, 'i');
-		longopts[1] = new LongOpt("objectpath", LongOpt.REQUIRED_ARGUMENT, null, 'o');
-		longopts[2] = new LongOpt("eval", LongOpt.REQUIRED_ARGUMENT, null, 'e');
-		longopts[3] = new LongOpt("print", LongOpt.NO_ARGUMENT, null, 'p');
-		longopts[4] = new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h');
-		longopts[5] = new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'v');
-		longopts[6] = new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q');
+		LongOpt[] longopts = new LongOpt[] {
+			new LongOpt("init", LongOpt.REQUIRED_ARGUMENT, null, 'i'),
+			new LongOpt("objectpath", LongOpt.REQUIRED_ARGUMENT, null, 'o'),
+			new LongOpt("eval", LongOpt.REQUIRED_ARGUMENT, null, 'e'),
+			new LongOpt("print", LongOpt.NO_ARGUMENT, null, 'p'),
+			new LongOpt("network", LongOpt.REQUIRED_ARGUMENT, null, 'n'),
+			new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
+			new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'v'),
+			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q')
+		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:phvq", longopts);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvq", longopts);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
@@ -143,6 +146,7 @@ public final class IAT {
 		          case 'i': _INIT_ARG_ = g.getOptarg(); break;
 		          case 'o': _OBJECTPATH_ARG_ = g.getOptarg(); break;
 		          case 'e': _EVAL_ARG_ = g.getOptarg(); break;
+		          case 'n': _NETWORK_NAME_ARG_ = g.getOptarg(); break;
 		          case 'p': _PRINT_ARG_ = true; break;
 		          case 'h': _HELP_ARG_ = true; break;
 		          case 'v': _VERSION_ARG_ = true; break;
@@ -372,12 +376,16 @@ public final class IAT {
 	public static void boot() {
 		try {
 			
-			// initialize the virtual machine using object path and init file
+			// initialize the virtual machine using object path, init file and network name
+			String networkName = (_NETWORK_NAME_ARG_ == null) ?
+					              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
+					              _NETWORK_NAME_ARG_;
 			ELVirtualMachine virtualMachine =
 				new ELVirtualMachine(parseInitFile(),
 						             new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_),
 					                                                        computeWorkingDirectory(),
-					                                                        computeObjectPath(initObjectPathString()) });
+					                                                        computeObjectPath(initObjectPathString()) },
+					                 networkName);
 						
 			// create a new actor on this vm with the appropriate main body.
 			_evaluator = NATActorMirror.createEmptyActor(virtualMachine, new NATActorMirror(virtualMachine)).getFarHost();
