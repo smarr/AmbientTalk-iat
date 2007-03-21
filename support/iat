@@ -23,4 +23,4 @@ fi
 # - invoke the main IAT class
 # - pass any parameters to this script to IAT
 # - pipe System.err to the console
-java -DAT_HOME=$AT_HOME -DAT_OBJECTPATH=$AT_OBJECTPATH -classpath $JARPATH edu.vub.at.IAT "$@" 2> /dev/console
+java -DAT_HOME=$AT_HOME -DAT_OBJECTPATH=$AT_OBJECTPATH -classpath $CLASSPATH:$JARPATH edu.vub.at.IAT "$@" 2> /dev/console
