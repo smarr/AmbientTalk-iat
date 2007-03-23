@@ -7,6 +7,8 @@ A quick tour of what's included:
 - at: the 'system library' that is shipped with the language. As a user, you can modify the files, but at your own risk :-)
 - lib: external Java libraries for the interpreter
 
+Do not forget to set the value of the AT_HOME environment variable when running iat from within TextMate.
+
 For more information, visit http://prog.vub.ac.be/amop
 
 For changelists and version information, visit http://prog2.vub.ac.be/mantis/changelog_page.php
