@@ -41,6 +41,7 @@ import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
+import edu.vub.util.Pattern;
 
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
@@ -221,8 +222,10 @@ public final class IAT {
 	 * and uses the listing to initialize the lobby of the actors.
 	 */
 	private static final SAFLobby computeObjectPath(String objectPath) {
-		// split the object path using its path separator (normally ':')
-		String[] roots = objectPath.split(System.getProperty("path.separator"));
+		// split the object path using ':'
+        String[] roots = Pattern.compile(":").split(new StringBuffer(objectPath));
+        // Backport from JDK 1.4 to 1.3
+        // String[] roots = objectPath.split(System.getProperty("path.separator"));
 		LinkedList namedPaths = new LinkedList();
 		
 		// for each named file path, add an entry to the mapping
@@ -232,7 +235,9 @@ public final class IAT {
 			}
 			
 			// extract name = path components
-			String[] pair = roots[i].split("=");
+            String[] pair = Pattern.compile("=").split(new StringBuffer(roots[i]));
+            // Backport from JDK 1.4 to 1.3
+			// String[] pair = roots[i].split("=");
 			if (pair.length != 2) {
 				abort("Error: invalid name=path entry on object path: " + roots[i]);
 			}
