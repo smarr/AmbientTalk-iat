@@ -31,7 +31,6 @@ import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
 import edu.vub.at.actors.natives.SharedActorField;
-import edu.vub.at.actors.net.Logging;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XParseError;
@@ -41,6 +40,7 @@ import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
+import edu.vub.at.util.logging.Logging;
 import edu.vub.util.Pattern;
 
 import gnu.getopt.Getopt;

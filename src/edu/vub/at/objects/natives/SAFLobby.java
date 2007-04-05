@@ -28,7 +28,6 @@
 package edu.vub.at.objects.natives;
 
 import edu.vub.at.actors.natives.SharedActorField;
-import edu.vub.at.actors.net.Logging;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XDuplicateSlot;
@@ -37,6 +36,7 @@ import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.grammar.ATSymbol;
 import edu.vub.at.objects.mirrors.Reflection;
 import edu.vub.at.objects.natives.grammar.AGSymbol;
+import edu.vub.at.util.logging.Logging;
 
 import java.io.File;
 import java.util.Iterator;
