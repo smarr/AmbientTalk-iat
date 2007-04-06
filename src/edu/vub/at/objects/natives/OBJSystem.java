@@ -108,7 +108,7 @@ public final class OBJSystem extends NATByCopy {
 	}
 	
 	/**
-	 * def println(@obj) { self.print(#[@obj, '\n']) }
+	 * def println(@obj) { self.print(@[@obj, '\n']) }
 	 */
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);

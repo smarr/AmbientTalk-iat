@@ -388,8 +388,8 @@ public final class IAT {
 			ELVirtualMachine virtualMachine =
 				new ELVirtualMachine(parseInitFile(),
 						             new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_),
-					                                                        computeWorkingDirectory(),
-					                                                        computeObjectPath(initObjectPathString()) },
+					                                          computeWorkingDirectory(),
+					                                          computeObjectPath(initObjectPathString()) },
 					                 networkName);
 						
 			// create a new actor on this vm with the appropriate main body.
