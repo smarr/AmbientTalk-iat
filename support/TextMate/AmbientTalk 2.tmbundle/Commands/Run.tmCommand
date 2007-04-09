@@ -15,7 +15,7 @@ iat = ENV['AT_HOME'] + "/iat"
 
 if ENV['TM_SELECTED_TEXT'] == nil then
 	input = ENV['TM_FILEPATH']
-	output = %x{#{iat} -q -p #{input} }
+	output = %x{#{iat} -q -p "#{input}" }
 	print "Input File: "
 else
 	input = ENV['TM_SELECTED_TEXT']

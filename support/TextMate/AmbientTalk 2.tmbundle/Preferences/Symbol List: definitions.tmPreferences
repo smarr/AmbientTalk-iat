@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>name</key>
-	<string>Symbol List: variable definitions</string>
+	<string>Symbol List: definitions</string>
 	<key>scope</key>
-	<string>meta.definition.variable</string>
+	<string>meta.definition</string>
 	<key>settings</key>
 	<dict>
 		<key>showInSymbolList</key>
@@ -13,7 +13,9 @@
 		<key>symbolTransformation</key>
 		<string>
 		s/def\s+//;
-		s/:=//</string>
+		s/:=//;
+		s/\{//;
+		s/\;//</string>
 	</dict>
 	<key>uuid</key>
 	<string>C25E1459-57F5-4951-AB1F-EC94E97B32CE</string>

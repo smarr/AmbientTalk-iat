@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>content</key>
-	<string>mirroredBy: ${1:customMirror};</string>
+	<string>mirroredBy: ${1:customMirror}</string>
 	<key>name</key>
 	<string>mirroredBy:</string>
 	<key>scope</key>

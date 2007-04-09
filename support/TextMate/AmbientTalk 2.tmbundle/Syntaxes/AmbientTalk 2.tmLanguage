@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>comment</key>
-	<string>AmbientTalk/2 Syntax: version 0.1</string>
+	<string>AmbientTalk/2 Syntax: version 0.2</string>
 	<key>fileTypes</key>
 	<array>
 		<string>at</string>
@@ -19,6 +19,39 @@
 	<key>patterns</key>
 	<array>
 		<dict>
+			<key>begin</key>
+			<string>(\s*defstripe)\s+([a-zA-Z_?]*)?\s*(&lt;:)?</string>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.other.declaration.ambienttalk</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>entity.name.variable.ambienttalk</string>
+				</dict>
+				<key>3</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.other.declaration.ambienttalk</string>
+				</dict>
+			</dict>
+			<key>end</key>
+			<string>;</string>
+			<key>name</key>
+			<string>meta.definition.stripe</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#canArguments</string>
+				</dict>
+			</array>
+		</dict>
+		<dict>
 			<key>captures</key>
 			<dict>
 				<key>1</key>
@@ -33,7 +66,7 @@
 				</dict>
 			</dict>
 			<key>match</key>
-			<string>(\s*def)\s+([a-zA-Z_?]+\w*)?\s*(:=)</string>
+			<string>(\s*def)\s+([a-zA-Z_?]*)?\s*(:=|;)</string>
 			<key>name</key>
 			<string>meta.definition.variable</string>
 		</dict>
@@ -51,7 +84,7 @@
 			<key>contentName</key>
 			<string>meta.definition.ambienttalk</string>
 			<key>end</key>
-			<string>\{</string>
+			<string>\{|;</string>
 			<key>name</key>
 			<string>meta.definition.method</string>
 			<key>patterns</key>
@@ -63,6 +96,56 @@
 				<dict>
 					<key>include</key>
 					<string>#defKeyworded</string>
+				</dict>
+			</array>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>(\s*def)\s+\[</string>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.other.declaration.ambienttalk</string>
+				</dict>
+			</dict>
+			<key>contentName</key>
+			<string>meta.definition.ambienttalk</string>
+			<key>end</key>
+			<string>(\])</string>
+			<key>name</key>
+			<string>meta.definition.multiValue</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#canArguments</string>
+				</dict>
+			</array>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>(\s*def)\s+([a-zA-Z_?]*)\[</string>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.other.declaration.ambienttalk</string>
+				</dict>
+			</dict>
+			<key>contentName</key>
+			<string>meta.definition.ambienttalk</string>
+			<key>end</key>
+			<string>(\])</string>
+			<key>name</key>
+			<string>meta.definition.table</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#constant.numeric.ambienttalk</string>
 				</dict>
 			</array>
 		</dict>
@@ -130,13 +213,25 @@
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>(if|then|else|while|do|unless|foreach|in|raise)+:</string>
+			<string>(if|then|else|while|do|unless|foreach|in|raise|let)+:</string>
 			<key>name</key>
 			<string>keyword.control.ambienttalk</string>
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>(object|extend|with|share|clone)+:</string>
+			<string>(when|whenever|disconnected|reconnected|discovered)+:</string>
+			<key>name</key>
+			<string>keyword.async.ambienttalk</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>(import|exclude|alias)</string>
+			<key>name</key>
+			<string>keyword.scope.ambienttalk</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>(object|extend|with|share|clone|stripedWith|is|stripesOf)+:</string>
 			<key>name</key>
 			<string>keyword.objects.ambienttalk</string>
 		</dict>
@@ -148,19 +243,25 @@
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>(mirror|reflect|mirroredBy)+:</string>
+			<string>(system|network|lobby|root|jlobby)</string>
+			<key>name</key>
+			<string>support.objects.ambienttalk</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>((mirror|reflect|mirroredBy)+:|defaultMirror)</string>
 			<key>name</key>
 			<string>support.mop.keywords.ambienttalk</string>
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>\b(addMethod|assignField|clone|defineField|extend|getMethod|invoke|listMethods|lookup|newInstance|print|respondsTo|select|share)\b(?=\()</string>
+			<string>\b(addMethod|assignField|clone|defineField|grabMethod|grabField|invoke|listMethods|listFields|lookup|newInstance|print|respondsTo|select|isExtensionOfParent)\b(?=\()</string>
 			<key>name</key>
 			<string>support.mop.methods.ambienttalk</string>
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>\b(base|dynamicParent|lexicalParent|mirror)\b</string>
+			<string>\b(base|lexicalParent|mirror)\b</string>
 			<key>name</key>
 			<string>support.mop.fields.ambienttalk</string>
 		</dict>
