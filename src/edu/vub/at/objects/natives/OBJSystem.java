@@ -86,7 +86,7 @@ public final class OBJSystem extends NATByCopy {
 	 */
 	public ATNil base_exit() {
 		System.exit(0);
-		return NATNil._INSTANCE_;
+		return OBJNil._INSTANCE_;
 	}
 	
 	/**
@@ -104,7 +104,7 @@ public final class OBJSystem extends NATByCopy {
 			}
 			
 		}
-		return NATNil._INSTANCE_;
+		return OBJNil._INSTANCE_;
 	}
 	
 	/**
@@ -113,7 +113,7 @@ public final class OBJSystem extends NATByCopy {
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
 		IATIO._INSTANCE_.println();
-		return NATNil._INSTANCE_;
+		return OBJNil._INSTANCE_;
 	}
 	
 	/**
@@ -126,7 +126,7 @@ public final class OBJSystem extends NATByCopy {
 			if (character >= 0)
 				return NATText.atValue(new String(new char[] { (char) character }));
 			else
-				return NATNil._INSTANCE_;
+				return OBJNil._INSTANCE_;
 		} catch (IOException e) { 
 			throw new XIOProblem(e);
 		}
@@ -143,7 +143,7 @@ public final class OBJSystem extends NATByCopy {
 	         if (line != null)
 	           return NATText.atValue(line);
 	         else
-	        	  return NATNil._INSTANCE_;
+	        	  return OBJNil._INSTANCE_;
 	      } catch (IOException e) { 
 	         throw new XIOProblem(e);
 	      }
@@ -163,7 +163,7 @@ public final class OBJSystem extends NATByCopy {
 	public ATObject base_reset() {
 		Evaluator.resetEnvironment();
 		IAT.boot();
-		return NATNil._INSTANCE_;
+		return OBJNil._INSTANCE_;
 	}
 
 }
