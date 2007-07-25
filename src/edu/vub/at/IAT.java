@@ -27,33 +27,29 @@
  */
 package edu.vub.at;
 
-import edu.vub.at.actors.natives.ELActor;
-import edu.vub.at.actors.natives.ELVirtualMachine;
-import edu.vub.at.actors.natives.NATActorMirror;
-import edu.vub.at.actors.natives.SharedActorField;
-import edu.vub.at.eval.Evaluator;
-import edu.vub.at.exceptions.InterpreterException;
-import edu.vub.at.exceptions.XParseError;
-import edu.vub.at.objects.ATAbstractGrammar;
-import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.natives.SAFLobby;
-import edu.vub.at.objects.natives.SAFSystem;
-import edu.vub.at.objects.natives.SAFWorkingDirectory;
-import edu.vub.at.parser.NATParser;
-import edu.vub.at.util.logging.Logging;
-import edu.vub.util.Pattern;
-
-import gnu.getopt.Getopt;
-import gnu.getopt.LongOpt;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.LinkedList;
+import java.io.PrintStream;
 import java.util.Properties;
+
+import edu.vub.at.actors.natives.ELActor;
+import edu.vub.at.actors.natives.ELVirtualMachine;
+import edu.vub.at.actors.natives.SharedActorField;
+import edu.vub.at.eval.Evaluator;
+import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XParseError;
+import edu.vub.at.objects.ATAbstractGrammar;
+import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.natives.OBJNil;
+import edu.vub.at.objects.natives.SAFSystem;
+import edu.vub.at.objects.natives.SAFWorkingDirectory;
+import edu.vub.at.parser.NATParser;
+import gnu.getopt.Getopt;
+import gnu.getopt.LongOpt;
 
 /**
  * IAT is the main entry point for the 'iat' Interactive AmbientTalk shell.
@@ -87,7 +83,7 @@ import java.util.Properties;
  * 
  * @author tvcutsem
  */
-public final class IAT {
+public final class IAT extends EmbeddableAmbientTalk {
 
 	private static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
@@ -97,14 +93,36 @@ public final class IAT {
 	private static String _INPUT_PROMPT_;
 	private static String _OUTPUT_PROMPT_;
 	
-	static {
+	/**
+	 * Performs the main boot sequence of the AmbientTalk VM and environment:
+	 * 1) Create a virtual machine using the correct object path and actor initialisation
+	 * 2) Create a new actor which knows how to interface with IAT (it knows execute: and the system object)
+	 * 3) Create a barrier which allows synchronizing between an actor and the REPL
+	 * 4) Ensure the barrier is informed of results by registering it as an observer
+ 	 * 5) Send the main code specified by the user to be executed by the actor.
+	 * 
+	 * An important side-effect of calling boot is that the variable _evaluator will 
+	 * point to a newly create actor serving as iat's global evaluation context.
+	 */
+	public IAT() throws InterpreterException {
+		// First read the property file
 		try {
 			_IAT_PROPS_.load(IAT.class.getResourceAsStream("iat.props"));
 			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
 			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
 		} catch (IOException e) {
-			abort("Fatal error while trying to load internal properties: "+e.getMessage());
+			abort("Fatal error while trying to load internal properties: "+e.getMessage(), e);
 		}
+		
+		// use the super method to initialize a virtual machine and evaluator actor 
+		super.initialize(	parseInitFile(),
+							new SharedActorField[] {
+										computeSystemObject(_ARGUMENTS_ARG_),
+										computeWorkingDirectory(),
+										computeObjectPath(initObjectPathString()) },
+							(_NETWORK_NAME_ARG_ == null) ?
+						              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
+						              _NETWORK_NAME_ARG_);
 	}
 	
 	// program arguments
@@ -120,10 +138,7 @@ public final class IAT {
 	public static boolean _HELP_ARG_ = false;
 	public static boolean _VERSION_ARG_ = false;
 	public static boolean _QUIET_ARG_ = false;
-	
-	// the actor serving as iat's global evaluation context
-	private static ELActor _evaluator;
-	
+		
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
 	private static void parseArguments(String[] args) {
@@ -210,112 +225,36 @@ public final class IAT {
 		return _OBJECTPATH_ARG_;
 	}
 	
-	/**
-	 * Given a textual description of the object path, of the form:
-	 * name1=path1:name2=path2:...
-	 * 
-	 * creates a listing:
-	 * name1 -> File(path1)
-	 * name2 -> File(path2)
-	 * ...
-	 * 
-	 * and uses the listing to initialize the lobby of the actors.
-	 */
-	private static final SAFLobby computeObjectPath(String objectPath) {
-		// split the object path using ':'
-        String[] roots = Pattern.compile(":").split(new StringBuffer(objectPath));
-        // Backport from JDK 1.4 to 1.3
-        // String[] roots = objectPath.split(System.getProperty("path.separator"));
-		LinkedList namedPaths = new LinkedList();
-		
-		// for each named file path, add an entry to the mapping
-		for (int i = 0; i < roots.length; i++) {
-			if (roots[i].length()==0) {
-				continue; // skip empty entries
-			}
-			
-			// extract name = path components
-            String[] pair = Pattern.compile("=").split(new StringBuffer(roots[i]));
-            // Backport from JDK 1.4 to 1.3
-			// String[] pair = roots[i].split("=");
-			if (pair.length != 2) {
-				abort("Error: invalid name=path entry on object path: " + roots[i]);
-			}
-			
-			String name = pair[0];
-			File pathfile = new File(pair[1]);
-			
-			// check whether the given pathfile is a directory
-			if (!pathfile.isDirectory()) {
-			    abort("Error: non-directory file on objectpath: " + pathfile.getAbsolutePath());
-			}
-			
-			if (!pathfile.isAbsolute()) {
-				try {
-					pathfile = pathfile.getCanonicalFile();
-				} catch (IOException e) {
-					abort("Fatal error while constructing objectpath: " + e.getMessage());
-				}
-			}
-			Logging.Init_LOG.info("Added entry to object path: " + name + "=" + pathfile.getPath());
-			namedPaths.add(new Object[] { name, pathfile });
-		}
-		
-		return new SAFLobby(namedPaths);
-	}
 	
-	/*
-	 * Given a main file, derives the relative directory, when no such file exists uses the
-	 * "user.dir" from java.
-	 */
-	private static final SAFWorkingDirectory computeWorkingDirectory() {
-		if (_FILE_ARG_ != null) {
-			// define ~ in terms of the location of the main file
-
-			File main = new File(_FILE_ARG_);
-			if (main.exists()) {
-				// if main file is valid ~ is its enclosing directory
-				
-				File workingDirectory = main.getParentFile();
-				if(workingDirectory != null && workingDirectory.exists()) {
-					return new SAFWorkingDirectory(workingDirectory);
-				}
-			}
-		} 
-		
-		// In all other cases...
-		return new SAFWorkingDirectory();
-	}
-	
-	private static ATAbstractGrammar parseInitFile() throws InterpreterException {
+	private ATAbstractGrammar parseInitFile() throws InterpreterException {
 		// first, load the proper code from the init file
 		try {
 			if (_INIT_ARG_ != null) {
 				// the user specified a custom init file
 				File initFile = new File(_INIT_ARG_);
 				if (!initFile.exists()) {
-					abort("Unknown init file: "+_INIT_ARG_);
+					abort("Unknown init file: "+_INIT_ARG_, null);
 				}
 				return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
 			} else {
 				// use the default init file under $AT_HOME/at/init/init.at provided with the distribution
 				String iatHome = System.getProperty(_ENV_AT_HOME_);
 				if (iatHome == null) {
-					abort("Cannot load init.at: none specified and no AT_HOME environment variable set");
+					abort("Cannot load init.at: none specified and no AT_HOME environment variable set", null);
 				} else {
 					File initFile = new File(iatHome, "at/init/init.at");
 					if (initFile.exists()) {
 						return NATParser.parse("init.at", new FileInputStream(initFile));	
 					} else {
-						abort("Cannot load init.at from default location " + initFile.getPath());
+						abort("Cannot load init.at from default location " + initFile.getPath(), null);
 					}
 				}
 			}
 		} catch (XParseError e) {
-			handleParseError(e);
-			abort("Parse error in init file, aborting");
+			handleParseError(null, e);
+			abort("Parse error in init file, aborting", e);
 		} catch (IOException e) {
-			abort("Error reading the init file: "+e.getMessage());
+			abort("Error reading the init file: "+e.getMessage(), e);
 		}
 		
 		return null;
@@ -323,85 +262,59 @@ public final class IAT {
 	
 	/**
 	 * Load the code in the main argument file or the code specified using the -e option.
-	 * As a side-effect, sets the _globalContext variable to the correct global context to
-	 * be used subsequently in the REPL.
-	 * 
-	 * @return the result of evaluating the main initialization file or the -e option; null if
-	 * no main file or -e option were specified.
+	 * As a side-effect, sets the scriptSource variable to reflect where the code was taken
+	 * from.
+	 * <p>
+	 * Subsequently evaluates the main code that was read and prints the result of evaluation 
+	 * on the console.
 	 */
-	private static String loadMainCode() {
+	private void loadMainCode() {
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
-		String startupCode = null;
+		String mainCode = null;
 		if (_EVAL_ARG_ != null) {
+			// the executed script is provided via the command line
+			scriptSource_ = "command line";
+			
 			// evaluate the -e code and disregard the main file
-			startupCode = _EVAL_ARG_;
+			mainCode = _EVAL_ARG_;
 		} else if (_FILE_ARG_ != null) {
 			// evaluate the main file
 			File main = new File(_FILE_ARG_);
 			if (!main.exists()) {
-				abort("Main file does not exist: " + main.getName());
+				abort("Main file does not exist: " + main.getName(), null);
 			} else {
 				try {
-					startupCode = Evaluator.loadContentOfFile(main);
+					// the executed script is contained in the provided file
+					scriptSource_ = main.getCanonicalPath();
+					
+					mainCode = Evaluator.loadContentOfFile(main);
 				} catch (IOException e) {
-					abort("Error reading main file: "+e.getMessage());
+					abort("Error reading main file: "+e.getMessage(), null);
 				}
 			}
 		}
-		return startupCode;
-	}
-	
-	/**
-	 * Reads a single line of input, and schedules it for evaluation. The result will
-	 * be printed as a result of proceed, which is invoked by the IATSynchronizer. 
-	 * The continual reading is ensured as that method in its turn calls readEvalPrintLoop
-	 */
-	private static void readEvalPrintLoop() {
-		String input;
-		try {
-			while ((input = readFromConsole()) != null) {
-				parseAndSend(input, "console");
-			}
-		} catch (IOException e) {
-			abort("Error reading input: "+e.getMessage());
+		
+		if (mainCode != null) {
+			evalAndPrint(mainCode, System.out);
 		}
 	}
-	
+		
 	/**
-	 * Performs the main boot sequence of the AmbientTalk VM and environment:
-	 * 1) Create a virtual machine using the correct object path and actor initialisation
-	 * 2) Create a new actor which knows how to interface with IAT (it knows execute: and the system object)
-	 * 3) Create a barrier which allows synchronizing between an actor and the REPL
-	 * 4) Ensure the barrier is informed of results by registering it as an observer
- 	 * 5) Send the main code specified by the user to be executed by the actor.
-	 * 
-	 * An important side-effect of calling boot is that the variable _evaluator will 
-	 * point to a newly create actor serving as iat's global evaluation context.
+	 * Reads a single line of input, and schedules it for evaluation. The scheduling is performed by
+	 * calling the {@link ELActor#sync_event_eval(ATAbstractGrammar)} method on the evaluator_ actor.
+	 * This allows scheduling a parse tree for execution and implicitly synchronizes upon the event
+	 * until the result is available. As such, this method can be written as an ordinary loop.
 	 */
-	public static void boot() {
+	private void readEvalPrintLoop() {
+		String input;
 		try {
+			scriptSource_ = "console";
 			
-			// initialize the virtual machine using object path, init file and network name
-			String networkName = (_NETWORK_NAME_ARG_ == null) ?
-					              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
-					              _NETWORK_NAME_ARG_;
-			ELVirtualMachine virtualMachine =
-				new ELVirtualMachine(parseInitFile(),
-						             new SharedActorField[] { new SAFSystem(_ARGUMENTS_ARG_),
-					                                          computeWorkingDirectory(),
-					                                          computeObjectPath(initObjectPathString()) },
-					                 networkName);
-						
-			// create a new actor on this vm with the appropriate main body.
-			_evaluator = NATActorMirror.createEmptyActor(virtualMachine, new NATActorMirror(virtualMachine)).getFarHost();
-			
-			String mainCode = loadMainCode();
-			
-			if (mainCode != null) {
-				parseAndSend(mainCode, _EVAL_ARG_ == null ? _FILE_ARG_ : "command line");
+			while ((input = readFromConsole()) != null) {
+				evalAndPrint(input, System.out);
 			}
-		} catch (Exception e) {
-			abort(e.getMessage());
+		} catch (IOException e) {
+			abort("Error reading input: "+e.getMessage(), e);
 		}
 	}
 	
@@ -434,7 +347,7 @@ public final class IAT {
 	 *       
 	 * @param args arguments passed to the JVM, which should all be interpreted as arguments to 'iat'
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) {		
 		try {
 			// parse the command-line options
 			parseArguments(args);
@@ -442,16 +355,19 @@ public final class IAT {
 			// handle -help or -version arguments
 			processInformativeArguments();
 			
-			// enter the main boot sequence
-			boot();
+			// create a new IAT instance to boot the virtual machine and evaluator actor.
+			IAT shell = new IAT();
+				
+			// evaluate the main code within the newly created shell
+			shell.loadMainCode();
 			
 			 // if -p was specified, quit immediately
 			if (_PRINT_ARG_)
 				    System.exit(0);
 			
 			// go into the REPL
-			readEvalPrintLoop();
-		} catch (RuntimeException e) {
+			shell.readEvalPrintLoop();
+		} catch (Exception e) {
 			System.err.println("Fatal error, quitting");
 			e.printStackTrace();
 		}
@@ -459,25 +375,7 @@ public final class IAT {
 	
 	// AUXILIARY FUNCTIONS
 	
-	private static void parseAndSend(final String code, final String inFile) {
-		try {
-			ATAbstractGrammar ast = NATParser.parse(inFile, code);
-			ATObject result = _evaluator.sync_event_eval(ast);
-			
-			// wait for evaluation result
-			printToConsole(result.toString());
-			
-		} catch (XParseError e) {
-			handleParseError(e);
-		} catch (InterpreterException e) {
-			handleATException(e);
-		} catch (Exception e) {
-			e.printStackTrace();
-			abort("Unexpected exception: " + e.getMessage());
-		}
-	}
-	
-	private static void handleParseError(XParseError e) {
+	protected ATObject handleParseError(String script, XParseError e) {
 		System.out.println("parse error in "+e.getMessage());
 		// try to mark the parse error on the console if that info is available
 		InputStream code = e.getErroneousCode();
@@ -509,11 +407,15 @@ public final class IAT {
 				// could not read from the source string, ignore further parse error handling
 			}
 		}
+		
+		return OBJNil._INSTANCE_;
 	}
 	
-	private static void handleATException(InterpreterException e) {
+	protected ATObject handleATException(String script, InterpreterException e) {
 		System.out.println(e.getMessage());
 		e.printAmbientTalkStackTrace(System.out);
+		
+		return OBJNil._INSTANCE_;
 	}
 	
 	private static String readFromConsole() throws IOException {
@@ -523,16 +425,42 @@ public final class IAT {
 		return IATIO._INSTANCE_.readln();
 	}
 	
-	private static void printToConsole(String txt) {
+	public void evalAndPrint(String script, PrintStream output) {
+		ATObject result = parseAndSend(script);
+		
 		if (!_QUIET_ARG_) {
 			System.out.print(_OUTPUT_PROMPT_);
 		}
-		IATIO._INSTANCE_.println(txt);
+		
+		IATIO._INSTANCE_.println(result.toString());
 	}
 	
-	private static void abort(String message) {
+	protected void abort(String message, Exception e) {
 		System.err.println(message);
 		System.exit(1);
+	}
+	
+	public SharedActorField computeSystemObject(Object[] arguments) {
+		return new SAFSystem((String[])arguments);
+	}
+	
+	public SharedActorField computeWorkingDirectory() {
+		if (_FILE_ARG_ != null) {
+			// define ~ in terms of the location of the main file
+
+			File main = new File(_FILE_ARG_);
+			if (main.exists()) {
+				// if main file is valid ~ is its enclosing directory
+				
+				File workingDirectory = main.getParentFile();
+				if(workingDirectory != null && workingDirectory.exists()) {
+					return new SAFWorkingDirectory(workingDirectory);
+				}
+			}
+		} 
+		
+		// In all other cases...
+		return super.computeWorkingDirectory();
 	}
 	
 	private static void printVersion() {

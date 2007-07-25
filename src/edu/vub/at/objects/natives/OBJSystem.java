@@ -160,10 +160,10 @@ public final class OBJSystem extends NATByCopy {
 	 *   
 	 * @return value of evaluating the main file or -e option; nil if there is no such file or option
 	 */
-	public ATObject base_reset() {
-		Evaluator.resetEnvironment();
-		IAT.boot();
-		return OBJNil._INSTANCE_;
-	}
+//	public ATObject base_reset() {
+//		Evaluator.resetEnvironment();
+//		IAT.boot();
+//		return OBJNil._INSTANCE_;
+//	}
 
 }
