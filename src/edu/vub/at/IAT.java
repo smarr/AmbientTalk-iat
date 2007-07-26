@@ -105,15 +105,6 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * point to a newly create actor serving as iat's global evaluation context.
 	 */
 	public IAT() throws InterpreterException {
-		// First read the property file
-		try {
-			_IAT_PROPS_.load(IAT.class.getResourceAsStream("iat.props"));
-			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
-			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
-		} catch (IOException e) {
-			abort("Fatal error while trying to load internal properties: "+e.getMessage(), e);
-		}
-		
 		// use the super method to initialize a virtual machine and evaluator actor 
 		super.initialize(	parseInitFile(),
 							new SharedActorField[] {
@@ -201,6 +192,17 @@ public final class IAT extends EmbeddableAmbientTalk {
 		
 		if (!_QUIET_ARG_) {
 			printVersion();
+		}
+	}
+	
+	static {
+		// First read the property file
+		try {
+			_IAT_PROPS_.load(IAT.class.getResourceAsStream("iat.props"));
+			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
+			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
+		} catch (IOException e) {
+			System.err.println("Fatal error while trying to load internal properties: "+e.getMessage());
 		}
 	}
 	
