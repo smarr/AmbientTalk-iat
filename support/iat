@@ -2,9 +2,9 @@
 
 # extracts the path where the 'iat' shell script is located
 CURRENTWD=`dirname $0`
-# automatically extract all .jar files in the lib subdirectory
-JARS=`ls $CURRENTWD/lib/*.jar`
-JARPATH="$CURRENTWD/ambienttalk2.jar"
+# automatically extract all .jar files in all subdirectories
+JARS=`find . -name '*.jar'`
+JARPATH=""
 
 # append the .jar files using ':' to construct a valid classpath
 for JAR in $JARS;
