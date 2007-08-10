@@ -102,7 +102,15 @@ public final class IATIO {
 	 * @return the next line on the input stream or null if EOF has been reached
 	 */
 	public String readln() throws IOException {
-	  return input_.readLine(); 
+		StringBuffer inputBuffer = new StringBuffer();
+		inputBuffer.append(input_.readLine());
+		
+		while (inputBuffer.charAt(inputBuffer.length() - 1) == '\\') {
+			inputBuffer.setCharAt(inputBuffer.length() -1, '\n');
+			inputBuffer.append(input_.readLine());
+		}
+		
+	  return inputBuffer.toString(); 
 	}
 
 }
