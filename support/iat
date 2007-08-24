@@ -3,7 +3,7 @@
 # extracts the path where the 'iat' shell script is located
 CURRENTWD=`dirname $0`
 # automatically extract all .jar files in all subdirectories
-JARS=`find . -name '*.jar'`
+JARS=`find $CURRENTWD -name '*.jar'`
 JARPATH=""
 
 # append the .jar files using ':' to construct a valid classpath
