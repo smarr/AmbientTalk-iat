@@ -8,7 +8,7 @@
 # help: the text to show when the user asks for help
 
 name = Interactive AmbientTalk Shell
-version = 2.8 (build170907)
+version = 2.7 (build170907)
 inputprompt = >
 outputprompt = >>
 readprompt = <<
