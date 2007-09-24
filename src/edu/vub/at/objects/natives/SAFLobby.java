@@ -76,7 +76,7 @@ public class SAFLobby extends SharedActorField {
 			// convert the path name into an AmbientTalk selector
 			ATSymbol selector = Reflection.downSelector(name);
 			try {
-			  lobby.meta_defineField(selector, new NATNamespace("/"+name, dir));
+			  lobby.meta_defineField(selector, new NATNamespace(File.separator+name, dir));
 			} catch (XDuplicateSlot e) {
 			  Logging.Init_LOG.warn("Shadowed path on classpath: " + name);
 			} catch (InterpreterException e) {

@@ -217,12 +217,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 		// if -o was not used, consult the AT_OBJECTPATH environment variable
 		if (_OBJECTPATH_ARG_ == null) {
 			String envObjPath = System.getProperty(_ENV_AT_OBJECTPATH_);
-			_OBJECTPATH_ARG_ = (envObjPath == null ? "" : (":"+envObjPath));
+			_OBJECTPATH_ARG_ = (envObjPath == null ? "" : (File.pathSeparator+envObjPath));
 		}
 		// always append the entry ':at=$AT_HOME/at'
 		String atHome = System.getProperty(_ENV_AT_HOME_);
 		if (atHome != null) {
-		  _OBJECTPATH_ARG_ += ":at="+atHome+"/at";
+		  _OBJECTPATH_ARG_ += ":at="+atHome+File.separator+"at";
 		}
 		return _OBJECTPATH_ARG_;
 	}
@@ -244,7 +244,8 @@ public final class IAT extends EmbeddableAmbientTalk {
 				if (iatHome == null) {
 					abort("Cannot load init.at: none specified and no AT_HOME environment variable set", null);
 				} else {
-					File initFile = new File(iatHome, "at/init/init.at");
+					// initFile = at/init/init.at
+					File initFile = new File(iatHome, "at"+File.separator+"init"+File.separator+"init.at");
 					if (initFile.exists()) {
 						return NATParser.parse("init.at", new FileInputStream(initFile));	
 					} else {
