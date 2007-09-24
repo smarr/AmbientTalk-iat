@@ -222,7 +222,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 		// always append the entry ':at=$AT_HOME/at'
 		String atHome = System.getProperty(_ENV_AT_HOME_);
 		if (atHome != null) {
-		  _OBJECTPATH_ARG_ += ":at="+atHome+File.separator+"at";
+		  _OBJECTPATH_ARG_ += File.pathSeparator + "at="+atHome+File.separator+"at";
 		}
 		return _OBJECTPATH_ARG_;
 	}
