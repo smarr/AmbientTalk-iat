@@ -198,8 +198,8 @@ public abstract class EmbeddableAmbientTalk {
 	 * 
 	 */
 	public SharedActorField computeObjectPath(String objectPath) {
-		// split the object path using ':'
-        String[] roots = Pattern.compile(":").split(new StringBuffer(objectPath));
+		// split the object path using ':' (on *nix)
+        String[] roots = Pattern.compile(File.pathSeparator).split(new StringBuffer(objectPath));
         // Backport from JDK 1.4 to 1.3
         // String[] roots = objectPath.split(System.getProperty("path.separator"));
 		LinkedList namedPaths = new LinkedList();
