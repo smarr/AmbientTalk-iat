@@ -41,8 +41,9 @@ import edu.vub.util.Pattern;
  */
 public abstract class EmbeddableAmbientTalk {
 
-	protected String	scriptSource_;
-	protected ELActor	evaluator_; 
+	protected String			scriptSource_;
+	protected ELActor			evaluator_; 
+	protected ELVirtualMachine	virtualMachine_;
 	
 	/**
 	 * Initializes a new instance, which is done in a method rather than a constructor to allow the use of 
@@ -51,10 +52,10 @@ public abstract class EmbeddableAmbientTalk {
 	public void initialize(ATAbstractGrammar ast, SharedActorField[] fields, String networkName) {
 		try {
 			// initialize the virtual machine using object path, init file and network name
-			ELVirtualMachine virtualMachine = new ELVirtualMachine(ast, fields, networkName);
+			virtualMachine_ = new ELVirtualMachine(ast, fields, networkName);
 						
 			// create a new actor on this vm with the appropriate main body.
-			evaluator_ = NATActorMirror.createEmptyActor(virtualMachine, new NATActorMirror(virtualMachine)).getFarHost();
+			evaluator_ = NATActorMirror.createEmptyActor(virtualMachine_, new NATActorMirror(virtualMachine_)).getFarHost();
 		} catch (InterpreterException cause) {
 			abort("Fatal error while initializing the evaluator actor:" + cause.getMessage(), cause);
 		}
