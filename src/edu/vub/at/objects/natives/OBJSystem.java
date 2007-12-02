@@ -27,16 +27,14 @@
  */
 package edu.vub.at.objects.natives;
 
-import edu.vub.at.IAT;
+import java.io.IOException;
+
 import edu.vub.at.IATIO;
-import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.ATTable;
-
-import java.io.IOException;
 
 /**
  * The sole instance of the class OBJSystem represents the 'system' object,
