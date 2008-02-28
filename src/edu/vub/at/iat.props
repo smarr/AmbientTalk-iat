@@ -21,8 +21,8 @@ AT_OBJECTPATH: default objectpath to use \n \
 Command Line Options: \n \
  -i, --init init-file: specifies which file to load as the preamble of the language \n \
     (the content of this file is evaluated in the context of the global lexical root) \n \
- -o, --objectpath objectpath: specifies the object-path, a list of directories separated by ':' \n \
-    which contain the necessary libraries \n \
+ -o, --objectpath objectpath: specifies the object-path, a list of 'name=directory' pairs separated by ':' (on mac/unix) or ';' (on windows)\n \
+   The names will be available as slots in the 'lobby' object bound to the appropriate module \n \
  -e, --eval codestring: evaluates the given codestring and ignores the filename \n \
  -p, --print print value of last evaluated expression, then quit instead of entering REPL \n \
  -n, --network name specify the name of the overlay network to join \n \
