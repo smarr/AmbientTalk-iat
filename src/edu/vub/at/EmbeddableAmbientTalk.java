@@ -55,7 +55,7 @@ public abstract class EmbeddableAmbientTalk {
 			virtualMachine_ = new ELVirtualMachine(ast, fields, networkName);
 						
 			// create a new actor on this vm with the appropriate main body.
-			evaluator_ = NATActorMirror.createEmptyActor(virtualMachine_, new NATActorMirror(virtualMachine_)).getFarHost();
+			evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
 		} catch (InterpreterException cause) {
 			abort("Fatal error while initializing the evaluator actor:" + cause.getMessage(), cause);
 		}
