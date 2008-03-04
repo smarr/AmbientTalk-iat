@@ -430,12 +430,10 @@ public final class IAT extends EmbeddableAmbientTalk {
 	
 	public void evalAndPrint(String script, PrintStream output) {
 		ATObject result = parseAndSend(script);
-		
 		if (!_QUIET_ARG_) {
-			System.out.print(_OUTPUT_PROMPT_);
+			output.print(_OUTPUT_PROMPT_);
 		}
-		
-		IATIO._INSTANCE_.println(result.toString());
+		output.println(result.toString());
 	}
 	
 	protected void abort(String message, Exception e) {

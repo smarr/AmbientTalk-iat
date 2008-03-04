@@ -29,6 +29,7 @@ package edu.vub.at;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 
@@ -41,14 +42,14 @@ import java.io.PrintStream;
  */
 public final class IATIO {
 
-	public static final IATIO _INSTANCE_ = new IATIO();
+	public static final IATIO _INSTANCE_ = new IATIO(System.in, System.out);
 	
 	private final BufferedReader input_;
 	private final PrintStream output_;
 	
-	private IATIO() {
-		input_ = new BufferedReader(new InputStreamReader(System.in));
-		output_ = System.out;
+	private IATIO(InputStream in, PrintStream out) {
+		input_ = new BufferedReader(new InputStreamReader(in));
+		output_ = out;
 	}
 	
 	// output
