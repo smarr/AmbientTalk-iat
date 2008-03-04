@@ -12,7 +12,9 @@ import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.NATActorMirror;
 import edu.vub.at.actors.natives.SharedActorField;
+import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.exceptions.XIllegalOperation;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.exceptions.XTypeMismatch;
@@ -167,6 +169,18 @@ public abstract class EmbeddableAmbientTalk {
 					"this incurs a possible violation of the event-loop concurrency properties");
 		
 		return Coercer.coerce(parseAndSend(script), requestedInterface, evaluator_.getExecutor());
+	}
+	
+	/**
+	 * Auxiliary function which reads an AmbientTalk file and treats it as a script to evaluate.
+	 */
+	public Object evalAndWrap(File ambientTalkSource, Class requestedInterface)
+	              throws XTypeMismatch, XIllegalOperation, XIOProblem {
+		try {
+			return evalAndWrap(Evaluator.loadContentOfFile(ambientTalkSource), requestedInterface);
+		} catch (IOException e) {
+			throw new XIOProblem(e);
+		}
 	}
 	
 	// SHARED ACTOR FIELD Constructors
