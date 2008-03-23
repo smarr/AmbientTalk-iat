@@ -48,6 +48,8 @@ public abstract class EmbeddableAmbientTalk {
 	protected ELVirtualMachine	virtualMachine_;
 	
 	/**
+	 * TODO: maybe add a constructor that calls the default computeObjectPath etc.
+	 *
 	 * Initializes a new instance, which is done in a method rather than a constructor to allow the use of 
 	 * instance methods such as computeObjectPath etc. to be used to pass in arguments.
 	 */
