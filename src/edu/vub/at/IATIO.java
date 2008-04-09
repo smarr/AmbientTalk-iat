@@ -106,7 +106,7 @@ public final class IATIO {
 		StringBuffer inputBuffer = new StringBuffer();
 		inputBuffer.append(input_.readLine());
 		
-		while (inputBuffer.charAt(inputBuffer.length() - 1) == '\\') {
+		while (inputBuffer.length() > 0 && inputBuffer.charAt(inputBuffer.length() - 1) == '\\') {
 			inputBuffer.setCharAt(inputBuffer.length() -1, '\n');
 			inputBuffer.append(input_.readLine());
 		}
