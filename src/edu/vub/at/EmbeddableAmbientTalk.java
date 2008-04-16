@@ -3,14 +3,8 @@
  */
 package edu.vub.at;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.LinkedList;
-
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
-import edu.vub.at.actors.natives.NATActorMirror;
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
@@ -26,7 +20,15 @@ import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
 import edu.vub.at.util.logging.Logging;
-import edu.vub.util.Pattern;
+import edu.vub.util.Regexp;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.LinkedList;
+
+import org.apache.regexp.RE;
+import org.apache.regexp.REProgram;
 
 /**
  * The EmbeddableAmbientTalk class provides a general framework to start an AmbientTalk virtual machine from
@@ -192,6 +194,9 @@ public abstract class EmbeddableAmbientTalk {
 	// method which will them properly initialize a virtual machine and an evaluator actor.
 	
 	
+	private static final REProgram pathSeparatorRegExp = Regexp.compile(File.pathSeparator);
+	private static final REProgram equalsRegExp = Regexp.compile("=");
+
 	/**
 	 * AmbientTalk scripts regularly use the <tt>lobby</tt> object (abbreviated as <tt>/</tt>) to load code 
 	 * which they need to execute (e.g. type tag definitions, default exceptions, language constructs etc.).
@@ -216,9 +221,7 @@ public abstract class EmbeddableAmbientTalk {
 	 */
 	public SharedActorField computeObjectPath(String objectPath) {
 		// split the object path using ':' (on *nix)
-        String[] roots = Pattern.compile(File.pathSeparator).split(new StringBuffer(objectPath));
-        // Backport from JDK 1.4 to 1.3
-        // String[] roots = objectPath.split(System.getProperty("path.separator"));
+        String[] roots = new RE(pathSeparatorRegExp).split(objectPath);
 		LinkedList namedPaths = new LinkedList();
 		
 		// for each named file path, add an entry to the mapping
@@ -228,7 +231,7 @@ public abstract class EmbeddableAmbientTalk {
 			}
 			
 			// extract name = path components
-            String[] pair = Pattern.compile("=").split(new StringBuffer(roots[i]));
+            String[] pair = new RE(equalsRegExp).split(roots[i]);
             // Backport from JDK 1.4 to 1.3
 			// String[] pair = roots[i].split("=");
 			if (pair.length != 2) {
