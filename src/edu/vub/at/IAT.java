@@ -44,7 +44,6 @@ import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.natives.OBJNil;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
@@ -411,14 +410,14 @@ public final class IAT extends EmbeddableAmbientTalk {
 			}
 		}
 		
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	protected ATObject handleATException(String script, InterpreterException e) {
 		System.out.println(e.getMessage());
 		e.printAmbientTalkStackTrace(System.out);
 		
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	private static String readFromConsole() throws IOException {

@@ -30,6 +30,7 @@ package edu.vub.at.objects.natives;
 import java.io.IOException;
 
 import edu.vub.at.IATIO;
+import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.objects.ATNil;
@@ -84,7 +85,7 @@ public final class OBJSystem extends NATByCopy {
 	 */
 	public ATNil base_exit() {
 		System.exit(0);
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	/**
@@ -102,7 +103,7 @@ public final class OBJSystem extends NATByCopy {
 			}
 			
 		}
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	/**
@@ -111,7 +112,7 @@ public final class OBJSystem extends NATByCopy {
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
 		IATIO._INSTANCE_.println();
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	/**
@@ -124,7 +125,7 @@ public final class OBJSystem extends NATByCopy {
 			if (character >= 0)
 				return NATText.atValue(new String(new char[] { (char) character }));
 			else
-				return OBJNil._INSTANCE_;
+				return Evaluator.getNil();
 		} catch (IOException e) { 
 			throw new XIOProblem(e);
 		}
@@ -141,7 +142,7 @@ public final class OBJSystem extends NATByCopy {
 	         if (line != null)
 	           return NATText.atValue(line);
 	         else
-	        	  return OBJNil._INSTANCE_;
+	        	  return Evaluator.getNil();
 	      } catch (IOException e) { 
 	         throw new XIOProblem(e);
 	      }

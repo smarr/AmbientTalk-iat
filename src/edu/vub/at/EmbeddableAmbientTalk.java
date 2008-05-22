@@ -39,7 +39,6 @@ import edu.vub.at.exceptions.XTypeMismatch;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.coercion.Coercer;
-import edu.vub.at.objects.natives.OBJNil;
 import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
@@ -126,7 +125,7 @@ public abstract class EmbeddableAmbientTalk {
 			abort("Unexpected exception: " + e.getMessage(), e);
 		}
 	
-		return OBJNil._INSTANCE_;
+		return Evaluator.getNil();
 	}
 	
 	/**
