@@ -303,5 +303,5 @@ public abstract class EmbeddableAmbientTalk {
 	 * the system and possibly consider providing access to reset the VM (i.e. restarting the embedded engine) and 
 	 * offering (transformed) command-line arguments to the AmbientTalk interpreter.
 	 */
-	public abstract SharedActorField computeSystemObject(Object[] arguments); 
+	public abstract SharedActorField computeSystemObject(Object[] arguments);
 }

@@ -27,6 +27,9 @@
  */
 package edu.vub.at.objects.natives;
 
+import edu.vub.at.EmbeddableAmbientTalk;
+import edu.vub.at.IAT;
+import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.objects.ATObject;
@@ -43,14 +46,16 @@ public class SAFSystem extends SharedActorField {
 	private static final AGSymbol _SYSTEM_SYM_ = AGSymbol.jAlloc("system");
 
 	private final String[] commandLineArguments_;
+	private final IAT shell_;
 	
-	public SAFSystem(String[] commandLineArguments) {
+	public SAFSystem(IAT shell, String[] commandLineArguments) {
 		super(_SYSTEM_SYM_);
 		commandLineArguments_ = commandLineArguments;
+		shell_ = shell;
 	}
 
 	public ATObject initialize() throws InterpreterException {
-		return new OBJSystem(commandLineArguments_);
+		return new NATSystem(shell_, commandLineArguments_);
 	}
 
 }

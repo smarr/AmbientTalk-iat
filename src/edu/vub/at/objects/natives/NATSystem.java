@@ -27,11 +27,9 @@
  */
 package edu.vub.at.objects.natives;
 
-import java.io.IOException;
-
+import edu.vub.at.IAT;
 import edu.vub.at.IATIO;
 import edu.vub.at.actors.eventloops.Event;
-import edu.vub.at.actors.eventloops.EventLoop;
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
@@ -42,8 +40,10 @@ import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.ATTable;
 import edu.vub.at.util.logging.Logging;
 
+import java.io.IOException;
+
 /**
- * The sole instance of the class OBJSystem represents the 'system' object,
+ * Instances of this class represent the 'system' object,
  * accessible from the lexical root during execution of 'iat'.
  * This object contains various native methods to interface with the shell environment.
  * 
@@ -54,82 +54,25 @@ import edu.vub.at.util.logging.Logging;
  *   def exit() { quits iat }
  *   def print(@objs) { print objects to standard output }
  *   def println(@objs) { print objects to standard output, followed by a newline }
- *   def read() { read character from standard input }
+ *   // def read() { read character from standard input }
  *   def readln() { read next line from input }
- *   def reset() { reset VM into fresh startup state and re-evaluates init and argument file }
+ *   // def reset() { reset VM into fresh startup state and re-evaluates init and argument file }
  * }
  *
  * @author tvc
  */
-public final class OBJSystem extends NATByCopy {
-
-	/**
-	 * An event loop that responds to read requests for reading
-	 * a character or a line from the input stream
-	 */
-	private static class ELReader extends EventLoop {
-		public ELReader() {
-			super("system object I/O Reader");
-		}
-
-		public void handle(Event event) {
-			// make the event process itself
-			event.process(this);
-		}
-		
-		public void event_read(final ELActor owner, final ATClosure success, final ATClosure failure) {
-			receive(new Event() {
-				public void process(Object eventloop) {
-					try {
-						try {
-							int character = IATIO._INSTANCE_.read();
-							if (character >= 0)
-								// success<-apply([c])
-								Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(new String(new char[] { (char) character }))));
-							else
-								Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
-						} catch (IOException e) {
-							Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
-						}
-					} catch (InterpreterException e) {
-						Logging.Init_LOG.error("error notifying read callback", e);
-					}
-				}
-			});
-		}
-		
-		public void event_readLine(final ELActor owner, final ATClosure success, final ATClosure failure) {
-			receive(new Event() {
-				public void process(Object eventloop) {
-					try {
-						try {
-					         String line = IATIO._INSTANCE_.readln();
-					         if (line != null)
-					            // success<-apply([c])
-								Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)));
-					         else
-					        	Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
-						} catch (IOException e) {
-							Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
-						}
-					} catch (InterpreterException e) {
-						Logging.Init_LOG.error("error notifying read callback", e);
-					}
-				}
-			});
-		}
-	}
+public final class NATSystem extends NATByCopy {
 
 	private final NATTable argv_;
-	private final ELReader reader_;
+	private final IAT shell_;
 	
-	public OBJSystem(String[] argv) {
+	public NATSystem(IAT shell, String[] argv) {
 		ATObject[] convertedArgv = new ATObject[argv.length];
 		for (int i = 0; i < convertedArgv.length; i++) {
 			convertedArgv[i] = NATText.atValue(argv[i]);
 		}
 		argv_ = NATTable.atValue(convertedArgv);
-		reader_ = new ELReader();
+		shell_ = shell;
 	}
 	
 	public NATText meta_print() throws InterpreterException {
@@ -158,16 +101,19 @@ public final class OBJSystem extends NATByCopy {
 	 * @throws InterpreterException if obj cannot be converted into a native text value
 	 */
 	public ATNil base_print(ATObject[] objs) throws InterpreterException {
-		for (int i = 0; i < objs.length; i++) {
-			ATObject obj = objs[i];
-			if (obj.isNativeText()) {
-				IATIO._INSTANCE_.print(obj.asNativeText().javaValue);
-			} else {
-				IATIO._INSTANCE_.print(obj.meta_print().javaValue);
+		try {
+			for (int i = 0; i < objs.length; i++) {
+				ATObject obj = objs[i];
+				if (obj.isNativeText()) {
+					IATIO._INSTANCE_.print(obj.asNativeText().javaValue);
+				} else {
+					IATIO._INSTANCE_.print(obj.meta_print().javaValue);
+				}
 			}
-			
+			return Evaluator.getNil();
+		} catch (IOException e) {
+			throw new XIOProblem(e);
 		}
-		return Evaluator.getNil();
 	}
 	
 	/**
@@ -175,8 +121,12 @@ public final class OBJSystem extends NATByCopy {
 	 */
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
-		IATIO._INSTANCE_.println();
-		return Evaluator.getNil();
+		try {
+			IATIO._INSTANCE_.println();
+			return Evaluator.getNil();
+		} catch (IOException e) {
+			throw new XIOProblem(e);
+		}
 	}
 	
 	/**
@@ -186,10 +136,10 @@ public final class OBJSystem extends NATByCopy {
 	 * Any exception is signalled by invoking the "catch:" closure.
 	 * @return nil
 	 */
-	public ATNil base_readNext_catch_(ATClosure success, ATClosure failure) throws XIOProblem {
-		reader_.event_read(ELActor.currentActor(), success, failure);
+	/*public ATNil base_readNext_catch_(final ATClosure success, final ATClosure failure) throws XIOProblem {
+		shell_.repl_.event_read(ELActor.currentActor(), success, failure);
 		return Evaluator.getNil();
-	}
+	}*/
 	
 	/**
 	 * readNextLine: { |line| ... } catch: { |ioException| ... }
@@ -198,8 +148,8 @@ public final class OBJSystem extends NATByCopy {
 	 * Any exception is signalled by invoking the "catch:" closure.
 	 * @return nil
 	 */
-	public ATNil base_readNextLine_catch_(ATClosure success, ATClosure failure) throws XIOProblem {
-		reader_.event_readLine(ELActor.currentActor(), success, failure);
+	public ATNil base_readNextLine_catch_(final ATClosure success, final ATClosure failure) throws XIOProblem {
+		shell_.repl_.event_readLine(ELActor.currentActor(), success, failure);
 		return Evaluator.getNil();
 	}
 	

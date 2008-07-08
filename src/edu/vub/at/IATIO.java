@@ -27,83 +27,107 @@
  */
 package edu.vub.at;
 
+import edu.vub.at.util.logging.Logging;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+
+import jline.ConsoleReader;
 
 /**
  * The class IATIO provides the core input/output functionality of IAT.
  * It is used both by the IAT REPL itself, as well as by the AmbientTalk programmers
- * (indirectly via the system object)
+ * (indirectly via the system object).
  *
- * @author tvc
+ * Input/output for the REPL is augmented with Command-line editing and history
+ * thanks to the JLine library.
+ *
+ * @author tvcutsem
  */
 public final class IATIO {
 
 	public static final IATIO _INSTANCE_ = new IATIO(System.in, System.out);
 	
-	private final BufferedReader input_;
-	private final PrintStream output_;
+	//private final BufferedReader input_;
+	//private final PrintStream output_;
+	private ConsoleReader console_;
 	
 	private IATIO(InputStream in, PrintStream out) {
-		input_ = new BufferedReader(new InputStreamReader(in));
-		output_ = out;
+		try {
+			console_ = new ConsoleReader(in, new OutputStreamWriter(out));
+		} catch(IOException e) {
+			Logging.Init_LOG.fatal("Failed to initialize IAT I/O", e);
+		}
+		//input_ = new BufferedReader(new InputStreamReader(in));
+		//output_ = out;
 	}
 	
 	// output
 	
-	public void print(String txt) {
-		output_.print(txt); output_.flush();
+	public void print(String txt) throws IOException {
+		console_.printString(txt);
+		// output_.print(txt); output_.flush();
 	}
 
-	public void print(int nbr) {
-		output_.print(nbr); output_.flush();
+	public void print(int nbr) throws IOException {
+		console_.printString(Integer.toString(nbr));
+		// output_.print(nbr); output_.flush();
 	}
 	
-	public void print(double frc) {
-		output_.print(frc); output_.flush();
+	public void print(double frc) throws IOException {
+		console_.printString(Double.toString(frc));
+		// output_.print(frc); output_.flush();
 	}
 	
-	public void print(boolean bool) {
-		output_.print(bool); output_.flush();
+	public void print(boolean bool) throws IOException {
+		console_.printString(Boolean.toString(bool));
+		// output_.print(bool); output_.flush();
 	}
 	
-	public void println(String txt) {
-		output_.println(txt);
+	public void println(String txt) throws IOException {
+		print(txt); console_.printNewline();
+		// output_.println(txt);
 	}
 
-	public void println(int nbr) {
-		output_.println(nbr);
+	public void println(int nbr) throws IOException {
+		print(nbr); console_.printNewline();
+		// output_.println(nbr);
 	}
 	
-	public void println(double frc) {
-		output_.println(frc);
+	public void println(double frc) throws IOException {
+		print(frc); console_.printNewline();
+		// output_.println(frc);
 	}
 	
-	public void println(boolean bool) {
-		output_.println(bool);
+	public void println(boolean bool) throws IOException {
+		print(bool); console_.printNewline();
+		// output_.println(bool);
 	}
 	
-	public void println() {
-		output_.println();
+	public void println() throws IOException {
+		console_.printNewline();
+		// output_.println();
 	}
 	
 	// input
-	
+
 	/**
-	 * @return the next character on the input stream or -1 if EOF has been reached
+	 * @return the next line on the input stream or null if EOF has been reached
 	 */
-	public int read() throws IOException {
-	  return input_.read();
+	public String readln(String prompt) throws IOException {
+		return console_.readLine(prompt); //, new Character((char)0));
 	}
 	
 	/**
 	 * @return the next line on the input stream or null if EOF has been reached
 	 */
 	public String readln() throws IOException {
-		StringBuffer inputBuffer = new StringBuffer();
+		return console_.readLine(); //new Character((char)0));
+		/* StringBuffer inputBuffer = new StringBuffer();
 		inputBuffer.append(input_.readLine());
 		
 		while (inputBuffer.length() > 0 && inputBuffer.charAt(inputBuffer.length() - 1) == '\\') {
@@ -111,7 +135,7 @@ public final class IATIO {
 			inputBuffer.append(input_.readLine());
 		}
 		
-	  return inputBuffer.toString(); 
+	    return inputBuffer.toString(); */ 
 	}
 
 }

@@ -36,17 +36,26 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Properties;
 
+import edu.vub.at.actors.eventloops.Event;
+import edu.vub.at.actors.eventloops.EventLoop;
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
+import edu.vub.at.objects.ATClosure;
+import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.natives.NATTable;
+import edu.vub.at.objects.natives.NATText;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
+import edu.vub.at.util.logging.Logging;
+
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
@@ -78,7 +87,7 @@ import gnu.getopt.LongOpt;
  * 
  * During execution of the iat program, the AmbientTalk Lexical root contains an object called
  * 'system'. For more information about this object, see the OBJSystem class:
- * @see edu.vub.at.natives.OBJSystem
+ * @see edu.vub.at.natives.NATSystem
  * 
  * @author tvcutsem
  */
@@ -91,6 +100,69 @@ public final class IAT extends EmbeddableAmbientTalk {
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
 	private static String _OUTPUT_PROMPT_;
+	public static String _READ_PROMPT_;
+	
+
+	/**
+	 * The read-eval-print loop is modelled as an event loop with
+	 * dedicated execution semantics. Whenever the event loop sits
+	 * idle (i.e. when its eventQ is empty), the loop performs a
+	 * read-eval-print cycle. Otherwise, it processes events from
+	 * its event queue. These extra events pertain to reading characters
+	 * or lines from the console.
+	 * 
+	 * @author tvcutsem
+	 */
+	public class ReadEvalPrintLoop extends EventLoop {
+
+		public ReadEvalPrintLoop() {
+			super("The Read-Eval-Print Loop");
+		}
+
+		public void handle(Event event) {
+			event.process(this);
+		}
+		
+		protected void execute() {
+			if (eventQueue_.isEmpty()) {
+				try {
+					String input = readFromConsole();
+					if (input == null) {
+						this.stopProcessing();
+						return;
+					}
+					evalAndPrint(input, System.out);
+				} catch (IOException e) {
+					abort("Error reading input: "+e.getMessage(), e);
+				}	
+			} else {
+				super.execute();
+			}
+		}
+		
+		public void event_readLine(final ELActor owner, final ATClosure success, final ATClosure failure) {
+		  receive(new Event() {
+			public void process(Object eventloop) {
+				try {
+					try {
+				         String line = IATIO._INSTANCE_.readln(IAT._READ_PROMPT_);
+				         if (line != null)
+				            // success<-apply([c])
+							Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)));
+				         else
+				        	Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
+					} catch (IOException e) {
+						Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
+					}
+				} catch (InterpreterException e) {
+					Logging.Init_LOG.error("error notifying read callback", e);
+				}
+			}
+		  });
+	    }	
+	}
+	
+	public ReadEvalPrintLoop repl_;
 	
 	/**
 	 * Performs the main boot sequence of the AmbientTalk VM and environment:
@@ -128,7 +200,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	public static boolean _HELP_ARG_ = false;
 	public static boolean _VERSION_ARG_ = false;
 	public static boolean _QUIET_ARG_ = false;
-		
+	
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
 	private static void parseArguments(String[] args) {
@@ -200,6 +272,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 			_IAT_PROPS_.load(IAT.class.getResourceAsStream("iat.props"));
 			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
 			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
+			_READ_PROMPT_ = _IAT_PROPS_.getProperty("readprompt", "<<");
 		} catch (IOException e) {
 			System.err.println("Fatal error while trying to load internal properties: "+e.getMessage());
 		}
@@ -307,17 +380,18 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * This allows scheduling a parse tree for execution and implicitly synchronizes upon the event
 	 * until the result is available. As such, this method can be written as an ordinary loop.
 	 */
-	private void readEvalPrintLoop() {
-		String input;
+	private void startReadEvalPrintLoop() {
+		scriptSource_ = "console";
+		repl_ = new ReadEvalPrintLoop();
+
+		/*String input;
 		try {
-			scriptSource_ = "console";
-			
 			while ((input = readFromConsole()) != null) {
 				evalAndPrint(input, System.out);
 			}
 		} catch (IOException e) {
 			abort("Error reading input: "+e.getMessage(), e);
-		}
+		}*/
 	}
 	
 	/**
@@ -365,10 +439,10 @@ public final class IAT extends EmbeddableAmbientTalk {
 			
 			 // if -p was specified, quit immediately
 			if (_PRINT_ARG_)
-				    System.exit(0);
+				System.exit(0);
 			
 			// go into the REPL
-			shell.readEvalPrintLoop();
+			shell.startReadEvalPrintLoop();
 		} catch (Exception e) {
 			System.err.println("Fatal error, quitting");
 			e.printStackTrace();
@@ -414,17 +488,21 @@ public final class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	protected ATObject handleATException(String script, InterpreterException e) {
-		System.out.println(e.getMessage());
-		e.printAmbientTalkStackTrace(System.out);
-		
+		try {
+			IATIO._INSTANCE_.println(e.getMessage());
+			e.printAmbientTalkStackTrace(System.out);
+		} catch(IOException e2) {
+			Logging.Init_LOG.error("error while printing exception stack trace:", e2);
+		}
 		return Evaluator.getNil();
 	}
 	
 	private static String readFromConsole() throws IOException {
 		if (!_QUIET_ARG_) {
-			System.out.print(_INPUT_PROMPT_);
+			return IATIO._INSTANCE_.readln(_INPUT_PROMPT_);
+		} else {
+			return IATIO._INSTANCE_.readln();
 		}
-		return IATIO._INSTANCE_.readln();
 	}
 	
 	public void evalAndPrint(String script, PrintStream output) {
@@ -441,7 +519,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	public SharedActorField computeSystemObject(Object[] arguments) {
-		return new SAFSystem((String[])arguments);
+		return new SAFSystem(this, (String[])arguments);
 	}
 	
 	public SharedActorField computeWorkingDirectory() {
