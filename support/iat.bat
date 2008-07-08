@@ -6,6 +6,7 @@
 @rem invoke the IAT shell via the JVM and:
 @rem - pass the AT_HOME and AT_OBJECTPATH environment variables to the JVM environment via -D
 @rem - make sure to include all the jar files in the ./lib directory
-@rem - invoke the main IAT class
+@rem - invoke JLine for line-editing support
+@rem - JLine invokes the main IAT class
 @rem - pass any parameters to this script to IAT
-@java -DAT_HOME=%AT_HOME% -DAT_OBJECTPATH=%AT_OBJECTPATH% -classpath %AT_CLASSPATH% edu.vub.at.IAT %1 %2 %3 %4 %5 %6 %7 %8 %9
+@java -DAT_HOME=%AT_HOME% -DAT_OBJECTPATH=%AT_OBJECTPATH% -classpath %AT_CLASSPATH% jline.ConsoleRunner edu.vub.at.IAT %1 %2 %3 %4 %5 %6 %7 %8 %9
