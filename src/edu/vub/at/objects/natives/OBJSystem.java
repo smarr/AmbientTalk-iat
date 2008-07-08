@@ -30,12 +30,17 @@ package edu.vub.at.objects.natives;
 import java.io.IOException;
 
 import edu.vub.at.IATIO;
+import edu.vub.at.actors.eventloops.Event;
+import edu.vub.at.actors.eventloops.EventLoop;
+import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
 import edu.vub.at.exceptions.XIOProblem;
+import edu.vub.at.objects.ATClosure;
 import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.ATTable;
+import edu.vub.at.util.logging.Logging;
 
 /**
  * The sole instance of the class OBJSystem represents the 'system' object,
@@ -58,7 +63,65 @@ import edu.vub.at.objects.ATTable;
  */
 public final class OBJSystem extends NATByCopy {
 
-	private NATTable argv_ = null;
+	/**
+	 * An event loop that responds to read requests for reading
+	 * a character or a line from the input stream
+	 */
+	private static class ELReader extends EventLoop {
+		public ELReader() {
+			super("system object I/O Reader");
+		}
+
+		public void handle(Event event) {
+			// make the event process itself
+			event.process(this);
+		}
+		
+		public void event_read(final ELActor owner, final ATClosure success, final ATClosure failure) {
+			receive(new Event() {
+				public void process(Object eventloop) {
+					try {
+						try {
+							int character = IATIO._INSTANCE_.read();
+							if (character >= 0)
+								// success<-apply([c])
+								Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(new String(new char[] { (char) character }))));
+							else
+								Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
+						} catch (IOException e) {
+							Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
+						}
+					} catch (InterpreterException e) {
+						Logging.Init_LOG.error("error notifying read callback", e);
+					}
+				}
+			});
+		}
+		
+		public void event_readLine(final ELActor owner, final ATClosure success, final ATClosure failure) {
+			receive(new Event() {
+				public void process(Object eventloop) {
+					try {
+						try {
+					         String line = IATIO._INSTANCE_.readln();
+					         if (line != null)
+					            // success<-apply([c])
+								Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)));
+					         else
+					        	Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
+						} catch (IOException e) {
+							Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
+						}
+					} catch (InterpreterException e) {
+						Logging.Init_LOG.error("error notifying read callback", e);
+					}
+				}
+			});
+		}
+	}
+
+	private final NATTable argv_;
+	private final ELReader reader_;
 	
 	public OBJSystem(String[] argv) {
 		ATObject[] convertedArgv = new ATObject[argv.length];
@@ -66,6 +129,7 @@ public final class OBJSystem extends NATByCopy {
 			convertedArgv[i] = NATText.atValue(argv[i]);
 		}
 		argv_ = NATTable.atValue(convertedArgv);
+		reader_ = new ELReader();
 	}
 	
 	public NATText meta_print() throws InterpreterException {
@@ -116,36 +180,27 @@ public final class OBJSystem extends NATByCopy {
 	}
 	
 	/**
-	 * def read() { read character from standard input }
-	 * @return the next character on the input stream, represented by an ATText or nil if EOF has been reached
+	 * readNext: { |c| ... } catch: { |ioException| ... }
+	 * Reads the next character on the input stream, represented by an ATText or nil if
+	 * EOF has been reached. The character is subsequently passed to the first closure.
+	 * Any exception is signalled by invoking the "catch:" closure.
+	 * @return nil
 	 */
-	public ATObject base_read() throws XIOProblem {
-		try {
-			int character = IATIO._INSTANCE_.read();
-			if (character >= 0)
-				return NATText.atValue(new String(new char[] { (char) character }));
-			else
-				return Evaluator.getNil();
-		} catch (IOException e) { 
-			throw new XIOProblem(e);
-		}
+	public ATNil base_readNext_catch_(ATClosure success, ATClosure failure) throws XIOProblem {
+		reader_.event_read(ELActor.currentActor(), success, failure);
+		return Evaluator.getNil();
 	}
 	
 	/**
-	 * def readln() { read next line from input }
-	 * @return an ATText value denoting the next input line or nil if EOF has been reached
-	 * @throws XIOProblem if unable to read from standard input
+	 * readNextLine: { |line| ... } catch: { |ioException| ... }
+	 * Reads the next line on the input stream, represented by an ATText or nil if
+	 * EOF has been reached. The line string is subsequently passed to the first closure.
+	 * Any exception is signalled by invoking the "catch:" closure.
+	 * @return nil
 	 */
-	public ATObject base_readln() throws XIOProblem {
-	      try { 
-	         String line = IATIO._INSTANCE_.readln();
-	         if (line != null)
-	           return NATText.atValue(line);
-	         else
-	        	  return Evaluator.getNil();
-	      } catch (IOException e) { 
-	         throw new XIOProblem(e);
-	      }
+	public ATNil base_readNextLine_catch_(ATClosure success, ATClosure failure) throws XIOProblem {
+		reader_.event_readLine(ELActor.currentActor(), success, failure);
+		return Evaluator.getNil();
 	}
 	
 	/**
