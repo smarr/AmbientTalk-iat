@@ -38,4 +38,9 @@ Program behaviour:\n \
  (unless -p was specified, in which case it prints out the last evaluated expression and quits)\n \
  \nDuring the execution of iat, the lexical root contains a 'system' object which can be used to interface\n \
  with the outside world. Also, all name=directory pairs specified in the objectpath are accessible as slots\n \
- in the 'lobby' namespace.\n
+ in the 'lobby' namespace.\n \
+Shell commands:\n \
+ iat treats every input starting with ':' as a command to the iat shell.\n \
+ Valid commands are:\n \
+   :q or :quit = quit the iat shell\n \
+   :l or :load filename = load the given filename, relative to iat's startup dir\n \

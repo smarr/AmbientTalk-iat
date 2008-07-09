@@ -124,18 +124,23 @@ public final class IAT extends EmbeddableAmbientTalk {
 		}
 		
 		protected void execute() {
+			// if Idle, perform a Read-Eval-Print cycle
 			if (eventQueue_.isEmpty()) {
 				try {
 					String input = readFromConsole();
 					if (input == null) {
 						this.stopProcessing();
 						return;
+					} else if (input.startsWith(":")) {
+						processShellCommand(input.substring(1));
+					} else {
+						evalAndPrint(input, System.out);
 					}
-					evalAndPrint(input, System.out);
 				} catch (IOException e) {
 					abort("Error reading input: "+e.getMessage(), e);
 				}	
 			} else {
+				// otherwise process incoming event
 				super.execute();
 			}
 		}
@@ -145,6 +150,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 			public void process(Object eventloop) {
 				try {
 					try {
+						 // blocking input
 				         String line = IATIO._INSTANCE_.readln(IAT._READ_PROMPT_);
 				         if (line != null)
 				            // success<-apply([c])
@@ -345,32 +351,32 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 */
 	private void loadMainCode() {
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
-		String mainCode = null;
 		if (_EVAL_ARG_ != null) {
 			// the executed script is provided via the command line
 			scriptSource_ = "command line";
 			
 			// evaluate the -e code and disregard the main file
-			mainCode = _EVAL_ARG_;
+			evalAndPrint(_EVAL_ARG_, System.out);			
 		} else if (_FILE_ARG_ != null) {
-			// evaluate the main file
-			File main = new File(_FILE_ARG_);
-			if (!main.exists()) {
-				abort("Main file does not exist: " + main.getName(), null);
-			} else {
-				try {
-					// the executed script is contained in the provided file
-					scriptSource_ = main.getCanonicalPath();
-					
-					mainCode = Evaluator.loadContentOfFile(main);
-				} catch (IOException e) {
-					abort("Error reading main file: "+e.getMessage(), null);
-				}
-			}
+			loadCodeFromFile(_FILE_ARG_);
 		}
-		
-		if (mainCode != null) {
-			evalAndPrint(mainCode, System.out);
+	}
+	
+	private void loadCodeFromFile(String sourcePath) {
+		// evaluate the main file
+		File source = new File(sourcePath);
+		if (!source.exists()) {
+			System.err.println("File does not exist: " + source.getAbsolutePath());
+		} else {
+			try {
+				// the executed script is contained in the provided file
+				scriptSource_ = source.getCanonicalPath();
+				
+				String sourceCode = Evaluator.loadContentOfFile(source);
+				evalAndPrint(sourceCode, System.out);	
+			} catch (IOException e) {
+				abort("Error reading file: "+e.getMessage(), null);
+			}
 		}
 	}
 		
@@ -545,5 +551,17 @@ public final class IAT extends EmbeddableAmbientTalk {
 		String progname = _IAT_PROPS_.getProperty("name", "unknown program name");
 		String version = _IAT_PROPS_.getProperty("version","unknown version");
 		System.out.println(progname + ", version " + version);
+	}
+	
+	private void processShellCommand(String command) {
+		if (command.equals("q") || command.equals("quit")) {
+			System.exit(0);
+		} else if (command.startsWith("l ") || command.startsWith("load ")) {
+			String fileName = command.substring(command.indexOf(" ")+1);
+			System.out.println("Loading " + fileName);
+			loadCodeFromFile(fileName);
+		} else {
+			System.out.println("Unknown command: " + command);
+		}
 	}
 }
