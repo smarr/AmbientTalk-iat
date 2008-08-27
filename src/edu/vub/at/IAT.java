@@ -520,7 +520,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	protected void abort(String message, Exception e) {
-		System.err.println(message);
+		System.out.println(message);
 		System.exit(1);
 	}
 	
