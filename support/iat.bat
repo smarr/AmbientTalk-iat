@@ -1,7 +1,7 @@
 @rem BAT script for running iat on Windows
 
 @set AT_HOME=.
-@set AT_CLASSPATH=".;%CLASSPATH%;%AT_HOME%\ambienttalk2.jar;%AT_HOME%\lib\antlr.jar;%AT_HOME%\lib\java-getopt-1.0.13.jar;%AT_HOME%\lib\jakarta-regexp-1.5.jar"
+@set AT_CLASSPATH=".;%CLASSPATH%;%AT_HOME%\ambienttalk2.jar;%AT_HOME%\lib\antlr.jar;%AT_HOME%\lib\java-getopt-1.0.13.jar;%AT_HOME%\lib\jakarta-regexp-1.5.jar;%AT_HOME%\lib\jline-0.9.94.jar"
 
 @rem invoke the IAT shell via the JVM and:
 @rem - pass the AT_HOME and AT_OBJECTPATH environment variables to the JVM environment via -D
