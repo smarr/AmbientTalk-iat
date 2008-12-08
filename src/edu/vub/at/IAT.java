@@ -182,6 +182,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * point to a newly create actor serving as iat's global evaluation context.
 	 */
 	public IAT() throws InterpreterException {
+		repl_ = new ReadEvalPrintLoop();
 		// use the super method to initialize a virtual machine and evaluator actor 
 		super.initialize(	parseInitFile(),
 							new SharedActorField[] {
@@ -388,8 +389,8 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 */
 	private void startReadEvalPrintLoop() {
 		scriptSource_ = "console";
-		repl_ = new ReadEvalPrintLoop();
-
+		repl_.start();
+		
 		/*String input;
 		try {
 			while ((input = readFromConsole()) != null) {
@@ -436,10 +437,10 @@ public final class IAT extends EmbeddableAmbientTalk {
 			
 			// handle -help or -version arguments
 			processInformativeArguments();
-			
+						
 			// create a new IAT instance to boot the virtual machine and evaluator actor.
 			IAT shell = new IAT();
-				
+			
 			// evaluate the main code within the newly created shell
 			shell.loadMainCode();
 			
