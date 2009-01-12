@@ -25,6 +25,8 @@ Do not forget to set the value of the AT_HOME environment variable when running 
 
 Note to windows users: iat.bat has been reported not to work when the AT_HOME directory contains spaces, so consider placing your AmbientTalk distribution in a directory that does not contain spaces.
 
+For service discovery, AmbientTalk makes use of IP multicasting. AmbientTalk broadcasts messages to IP 244.0.0.1 on port 4446. Make sure your firewall does not block this port.
+
 For more information, visit http://prog.vub.ac.be/amop
 
 For changelists and version information, visit http://prog.vub.ac.be/amop/at/changelog
