@@ -88,6 +88,14 @@ public final class NATSystem extends NATByCopy {
 	}
 	
 	/**
+	 * def argv := command-line arguments passed to iat
+	 * @return a table of ATText values
+	 */
+	public ATTable base_argv() {
+		return argv_;
+	}
+	
+	/**
 	 * def exit() { quits iat }
 	 */
 	public ATNil base_exit() {
