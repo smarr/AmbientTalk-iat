@@ -114,9 +114,8 @@ public abstract class EmbeddableAmbientTalk {
 			// This also ensures that any uncaught exceptions raised while evaluating the script
 			// will be re-raised in this thread so that they may be properly caught in the catch
 			// blocks provided below.
-			ATObject result = evaluator_.sync_event_eval(ast);
+			return evaluator_.sync_event_eval(ast);
 			
-			return result;			
 		} catch (XParseError e) {
 			return handleParseError(script, e);
 		} catch (InterpreterException e) {
@@ -126,6 +125,45 @@ public abstract class EmbeddableAmbientTalk {
 		}
 	
 		return Evaluator.getNil();
+	}
+	
+	/**
+	 * Parses the given script into an AmbientTalk Abstract Syntax Tree, subsequently evaluates this AST 
+	 * with the evaluator and makes the evaluator print the expression into a String.
+	 * 
+	 * The method is otherwise equivalent to {@link this#parseAndSend(String)}, except that the result of
+	 * {@link EmbeddableAmbientTalk#handleParseError(String, XParseError)} and
+	 * {@link EmbeddableAmbientTalk#handleATException(String, InterpreterException)} will be converted
+	 * to a String using {@link String#toString()}.
+	 * 
+	 * Note: this method is necessary and cannot be correctly simulated by executing:
+	 * <tt>parseAndSend(ast).toString()</tt>
+	 * Reason: because of reflection, toString() may execute arbitrary AmbientTalk code
+	 * (in the guise of a meta_print method) and this code would then be executed by the REPL rather than
+	 * by the owner actor! Cf. Issue #32.
+	 * 
+	 * @param script a string containing the AmbientTalk code to be executed.
+	 * @return the printed representation of the script's value, or of executing the error handling template methods.
+	 */
+	protected String parseSendAndPrint(String script) {
+		try {
+			ATAbstractGrammar ast = NATParser.parse(scriptSource_, script);
+			
+			// By using sync_eval_event, we force the system to wait for the evaluation result
+			// This also ensures that any uncaught exceptions raised while evaluating the script
+			// will be re-raised in this thread so that they may be properly caught in the catch
+			// blocks provided below.
+			return evaluator_.sync_event_evalAndPrint(ast);
+			
+		} catch (XParseError e) {
+			return handleParseError(script, e).toString();
+		} catch (InterpreterException e) {
+			return handleATException(script, e).toString();
+		} catch (Exception e) {
+			abort("Unexpected exception: " + e.getMessage(), e);
+		}
+		
+		return null;
 	}
 	
 	/**
@@ -167,7 +205,7 @@ public abstract class EmbeddableAmbientTalk {
 	 * @param output an output channel to print the resulting object to
 	 */
 	public void evalAndPrint(String script, PrintStream output) {
-		output.println(parseAndSend(script));
+		output.println(parseSendAndPrint(script));
 	}
 	
 	/**

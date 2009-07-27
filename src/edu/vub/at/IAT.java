@@ -513,11 +513,11 @@ public final class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	public void evalAndPrint(String script, PrintStream output) {
-		ATObject result = parseAndSend(script);
+		String result = parseSendAndPrint(script);
 		if (!_QUIET_ARG_) {
 			output.print(_OUTPUT_PROMPT_);
 		}
-		output.println(result.toString());
+		output.println(result);
 	}
 	
 	protected void abort(String message, Exception e) {
