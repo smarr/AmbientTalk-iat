@@ -365,9 +365,9 @@ public final class IAT extends EmbeddableAmbientTalk {
 	
 	private void loadCodeFromFile(String sourcePath) {
 		// evaluate the main file
-		File source = new File(sourcePath);
+		File source = new File(sourcePath.trim());
 		if (!source.exists()) {
-			System.err.println("File does not exist: " + source.getAbsolutePath());
+			System.out.println("File does not exist: " + source.getAbsolutePath());
 		} else {
 			try {
 				// the executed script is contained in the provided file
