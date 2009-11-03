@@ -28,7 +28,8 @@
 package edu.vub.at.objects.natives;
 
 import edu.vub.at.IAT;
-import edu.vub.at.IATIO;
+import edu.vub.at.IATIOJline;
+import edu.vub.at.IATIOStandard;
 import edu.vub.at.actors.eventloops.Event;
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.eval.Evaluator;
@@ -112,11 +113,18 @@ public final class NATSystem extends NATByCopy {
 		try {
 			for (int i = 0; i < objs.length; i++) {
 				ATObject obj = objs[i];
+				String toPrint = null;
 				if (obj.isNativeText()) {
-					IATIO._INSTANCE_.print(obj.asNativeText().javaValue);
-				} else {
-					IATIO._INSTANCE_.print(obj.meta_print().javaValue);
+					toPrint = obj.asNativeText().javaValue;
+				}else{
+					toPrint = obj.meta_print().javaValue;
 				}
+				if (shell_._NO_JLINE_ARG_) {
+					IATIOStandard._INSTANCE_.print(toPrint);
+				}else{
+					IATIOJline._INSTANCE_.print(toPrint);
+				}
+
 			}
 			return Evaluator.getNil();
 		} catch (IOException e) {
@@ -130,7 +138,11 @@ public final class NATSystem extends NATByCopy {
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
 		try {
-			IATIO._INSTANCE_.println();
+			if (shell_._NO_JLINE_ARG_) {
+				IATIOStandard._INSTANCE_.println();
+			}else{
+				IATIOJline._INSTANCE_.println();
+			}
 			return Evaluator.getNil();
 		} catch (IOException e) {
 			throw new XIOProblem(e);

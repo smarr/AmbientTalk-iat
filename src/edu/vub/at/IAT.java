@@ -151,7 +151,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 				try {
 					try {
 						 // blocking input
-				         String line = IATIO._INSTANCE_.readln(IAT._READ_PROMPT_);
+						String line = null;
+						if (IAT._NO_JLINE_ARG_) {
+						 line = IATIOStandard._INSTANCE_.readln(IAT._READ_PROMPT_);
+						}else{
+				         line = IATIOJline._INSTANCE_.readln(IAT._READ_PROMPT_);
+						}
 				         if (line != null)
 				            // success<-apply([c])
 							Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)));
@@ -193,6 +198,68 @@ public final class IAT extends EmbeddableAmbientTalk {
 						              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
 						              _NETWORK_NAME_ARG_);
 	}
+
+	/**
+	 * Performs the main boot sequence of iat and the AmbientTalk VM.
+	 * Startup sequence:
+	 *  I) parse command-line arguments, extract properties
+	 * II) check for simple -help or -version arguments
+	 * 
+	 * III) Boot sequence:
+	 * 1) initialize the lobby using the object path (-o or default)
+	 * 2) add system object to the global lexical scope
+	 * 3) evaluate init file (-i or default) in context of the global scope
+	 * 4) if -e was specified, then
+	 *      evaluate the given code in a 'main' namespace
+	 *    else if a filename was specified then
+	 *      load the file and evaluate it within its 'main' namespace
+	 *    else
+	 *      skip
+	 * 5) if -p was specified, then
+	 *      print value of last evaluation
+	 *      quit
+	 *    else
+	 * 6) boot sequence for AmbientTalkVM - @see {@link #IAT()}
+	 * IV) enter REPL:
+	 *       1) print input prompt (unless -q)
+	 *       2) read input
+	 *       3) parse input
+	 *       4) eval input in the 'main' namespace
+	 *       5) print output prompt (unless -q)
+	 *       6) print value of last evaluation
+	 *       
+	 * @param args arguments passed to the JVM, which should all be interpreted as arguments to 'iat'
+	 * @throws InterpreterException
+	 */
+	public IAT(String[] args) throws InterpreterException{
+		// parse the command-line options
+		parseArguments(args);
+
+		// handle -help or -version arguments
+		processInformativeArguments();
+
+		//boot the virtual machine and evaluator actor.
+		repl_ = new ReadEvalPrintLoop();
+		// use the super method to initialize a virtual machine and evaluator actor 
+		super.initialize(	parseInitFile(),
+				new SharedActorField[] {
+			computeSystemObject(_ARGUMENTS_ARG_),
+			computeWorkingDirectory(),
+			computeObjectPath(initObjectPathString()) },
+			(_NETWORK_NAME_ARG_ == null) ?
+					ELVirtualMachine._DEFAULT_GROUP_NAME_ :
+						_NETWORK_NAME_ARG_);
+
+		// evaluate the main code within the newly created shell
+		loadMainCode();
+
+		// if -p was specified, quit immediately
+		if (_PRINT_ARG_)
+			System.exit(0);
+
+		// go into the REPL
+		startReadEvalPrintLoop();
+	}
 	
 	// program arguments
 	public static String _FILE_ARG_ = null;
@@ -207,6 +274,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	public static boolean _HELP_ARG_ = false;
 	public static boolean _VERSION_ARG_ = false;
 	public static boolean _QUIET_ARG_ = false;
+	public static boolean _NO_JLINE_ARG_ = false;
 	
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
@@ -220,10 +288,11 @@ public final class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("network", LongOpt.REQUIRED_ARGUMENT, null, 'n'),
 			new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
 			new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'v'),
-			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q')
+			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q'),
+			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j')
 		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvq", longopts);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqj", longopts, true);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
@@ -236,6 +305,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 		          case 'h': _HELP_ARG_ = true; break;
 		          case 'v': _VERSION_ARG_ = true; break;
 		          case 'q': _QUIET_ARG_ = true; break;
+		          case 'j': _NO_JLINE_ARG_ = true;break;
 		          case '?':
 		        	   // getopt() already printed an error
 		        	   System.out.println("There were illegal options, quitting.");
@@ -400,61 +470,20 @@ public final class IAT extends EmbeddableAmbientTalk {
 			abort("Error reading input: "+e.getMessage(), e);
 		}*/
 	}
-	
 	/**
-	 * Startup sequence:
-	 *  I) parse command-line arguments, extract properties
-	 * II) check for simple -help or -version arguments
-	 * 
-	 * III) Boot sequence:
-	 * 1) initialize the lobby using the object path (-o or default)
-	 * 2) add system object to the global lexical scope
-	 * 3) evaluate init file (-i or default) in context of the global scope
-	 * 4) if -e was specified, then
-	 *      evaluate the given code in a 'main' namespace
-	 *    else if a filename was specified then
-	 *      load the file and evaluate it within its 'main' namespace
-	 *    else
-	 *      skip
-	 * 5) if -p was specified, then
-	 *      print value of last evaluation
-	 *      quit
-	 *    else
-	 * IV) enter REPL:
-	 *       1) print input prompt (unless -q)
-	 *       2) read input
-	 *       3) parse input
-	 *       4) eval input in the 'main' namespace
-	 *       5) print output prompt (unless -q)
-	 *       6) print value of last evaluation
-	 *       
+	 * @see {@link #IAT(String[])}       
 	 * @param args arguments passed to the JVM, which should all be interpreted as arguments to 'iat'
+	 * @throws InterpreterException
 	 */
 	public static void main(String[] args) {		
 		try {
-			// parse the command-line options
-			parseArguments(args);
-			
-			// handle -help or -version arguments
-			processInformativeArguments();
-						
-			// create a new IAT instance to boot the virtual machine and evaluator actor.
-			IAT shell = new IAT();
-			
-			// evaluate the main code within the newly created shell
-			shell.loadMainCode();
-			
-			 // if -p was specified, quit immediately
-			if (_PRINT_ARG_)
-				System.exit(0);
-			
-			// go into the REPL
-			shell.startReadEvalPrintLoop();
+			new IAT(args);
 		} catch (Exception e) {
 			System.err.println("Fatal error, quitting");
 			e.printStackTrace();
 		}
 	}
+	
 	
 	// AUXILIARY FUNCTIONS
 	
@@ -496,7 +525,11 @@ public final class IAT extends EmbeddableAmbientTalk {
 	
 	protected ATObject handleATException(String script, InterpreterException e) {
 		try {
-			IATIO._INSTANCE_.println(e.getMessage());
+			if (_NO_JLINE_ARG_){
+				IATIOStandard._INSTANCE_.println(e.getMessage());
+			} else{
+				IATIOJline._INSTANCE_.println(e.getMessage());
+			}
 			e.printAmbientTalkStackTrace(System.out);
 		} catch(IOException e2) {
 			Logging.Init_LOG.error("error while printing exception stack trace:", e2);
@@ -506,9 +539,17 @@ public final class IAT extends EmbeddableAmbientTalk {
 	
 	private static String readFromConsole() throws IOException {
 		if (!_QUIET_ARG_) {
-			return IATIO._INSTANCE_.readln(_INPUT_PROMPT_);
+			if (_NO_JLINE_ARG_){
+				return IATIOStandard._INSTANCE_.readln(_INPUT_PROMPT_);
+			} else{
+			  return IATIOJline._INSTANCE_.readln(_INPUT_PROMPT_);
+			}
 		} else {
-			return IATIO._INSTANCE_.readln();
+			if (_NO_JLINE_ARG_){
+				return IATIOStandard._INSTANCE_.readln();
+			} else{
+				return IATIOJline._INSTANCE_.readln();
+			}
 		}
 	}
 	
