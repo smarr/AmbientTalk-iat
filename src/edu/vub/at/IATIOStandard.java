@@ -33,7 +33,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 
-public final class IATIOStandard {
+public final class IATIOStandard extends IATIO {
 
 	public static final IATIOStandard _INSTANCE_ = new IATIOStandard(System.in, System.out);
 	
