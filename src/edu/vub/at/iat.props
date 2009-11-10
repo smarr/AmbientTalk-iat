@@ -8,7 +8,7 @@
 # help: the text to show when the user asks for help
 
 name = Interactive AmbientTalk Shell
-version = 2.14
+version = 2.14 [build091109]
 inputprompt = >
 outputprompt = >>
 readprompt = <<
@@ -29,7 +29,7 @@ Command Line Options: \n \
  -h, --help display help, then quit \n \
  -v, --version display version information, then quit \n \
  -q, --quiet quiet mode - don't print welcome message or any prompts \n \
- -nojline, --nojline disables jline library which provides iat with command-line editing and history \n \ 
+ -j, --nojline disables jline library which provides iat with command-line editing and history \n \ 
 \n \
 Program arguments:\n \
  an optional filename and optional arguments to the script\n \
