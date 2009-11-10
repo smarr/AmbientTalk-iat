@@ -148,7 +148,6 @@ public final class IAT extends EmbeddableAmbientTalk {
 		public void event_readLine(final ELActor owner, final ATClosure success, final ATClosure failure) {
 		  receive(new Event() {
 			public void process(Object eventloop) {
-				try {
 					try {
 						 // blocking input
 						String line = null;
@@ -159,15 +158,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 						}
 				         if (line != null)
 				            // success<-apply([c])
-							Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)));
+							Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)), "readNextLine:");
 				         else
-				        	Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()));
+				        	Evaluator.trigger(owner, success, NATTable.of(Evaluator.getNil()),"readNextLine:");
 					} catch (IOException e) {
-						Evaluator.trigger(failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()));
+						Evaluator.trigger(owner, failure, NATTable.of(new XIOProblem(e).getAmbientTalkRepresentation()),"readNextLine:");
 					}
-				} catch (InterpreterException e) {
-					Logging.Init_LOG.error("error notifying read callback", e);
-				}
 			}
 		  });
 	    }	
