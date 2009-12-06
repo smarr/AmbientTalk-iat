@@ -420,7 +420,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
 		if (_EVAL_ARG_ != null) {
 			// the executed script is provided via the command line
-			scriptSource_ = "command line";
+			scriptSource_ = "commandline";
 			
 			// evaluate the -e code and disregard the main file
 			evalAndPrint(_EVAL_ARG_, System.out);			
@@ -454,7 +454,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * until the result is available. As such, this method can be written as an ordinary loop.
 	 */
 	private void startReadEvalPrintLoop() {
-		scriptSource_ = "console";
+		scriptSource_ = "REPL";
 		repl_.start();
 		
 		/*String input;
