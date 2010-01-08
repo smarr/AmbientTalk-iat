@@ -192,7 +192,10 @@ public final class IAT extends EmbeddableAmbientTalk {
 										computeObjectPath(initObjectPathString()) },
 							(_NETWORK_NAME_ARG_ == null) ?
 						              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
-						              _NETWORK_NAME_ARG_);
+						              _NETWORK_NAME_ARG_,
+						              (_IP_ADDRESS_ARG_ == null) ?
+								       ELVirtualMachine._DEFAULT_IP_ADDRESS_ :
+								       _IP_ADDRESS_ARG_);
 	}
 
 	/**
@@ -244,7 +247,10 @@ public final class IAT extends EmbeddableAmbientTalk {
 			computeObjectPath(initObjectPathString()) },
 			(_NETWORK_NAME_ARG_ == null) ?
 					ELVirtualMachine._DEFAULT_GROUP_NAME_ :
-						_NETWORK_NAME_ARG_);
+						_NETWORK_NAME_ARG_,
+						(_IP_ADDRESS_ARG_ == null) ?
+							       ELVirtualMachine._DEFAULT_IP_ADDRESS_ :
+							       _IP_ADDRESS_ARG_);
 
 		// evaluate the main code within the newly created shell
 		loadMainCode();
@@ -265,6 +271,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	public static String _OBJECTPATH_ARG_ = null;
 	public static String _EVAL_ARG_ = null;
 	public static String _NETWORK_NAME_ARG_ = null;
+	public static String _IP_ADDRESS_ARG_ = null;
 	
 	public static boolean _PRINT_ARG_ = false;
 	public static boolean _HELP_ARG_ = false;
@@ -285,7 +292,8 @@ public final class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("help", LongOpt.NO_ARGUMENT, null, 'h'),
 			new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'v'),
 			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q'),
-			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j')
+			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j'),
+			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a')
 		};
 		
 		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqj", longopts, true);
@@ -302,6 +310,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 		          case 'v': _VERSION_ARG_ = true; break;
 		          case 'q': _QUIET_ARG_ = true; break;
 		          case 'j': _NO_JLINE_ARG_ = true;break;
+		          case 'a': _IP_ADDRESS_ARG_ = g.getOptarg(); break;
 		          case '?':
 		        	   // getopt() already printed an error
 		        	   System.out.println("There were illegal options, quitting.");

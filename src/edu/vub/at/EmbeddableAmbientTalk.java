@@ -78,10 +78,10 @@ public abstract class EmbeddableAmbientTalk {
 	 * Initializes a new instance, which is done in a method rather than a constructor to allow the use of 
 	 * instance methods such as computeObjectPath etc. to be used to pass in arguments.
 	 */
-	public void initialize(ATAbstractGrammar ast, SharedActorField[] fields, String networkName) {
+	public void initialize(ATAbstractGrammar ast, SharedActorField[] fields, String networkName, String ipAddress) {
 		try {
 			// initialize the virtual machine using object path, init file and network name
-			virtualMachine_ = new ELVirtualMachine(ast, fields, networkName);
+			virtualMachine_ = new ELVirtualMachine(ast, fields, networkName, ipAddress);
 						
 			// create a new actor on this vm with the appropriate main body.
 			evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
