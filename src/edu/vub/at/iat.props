@@ -26,7 +26,7 @@ Command Line Options: \n \
  -e, --eval codestring: evaluates the given codestring and ignores the filename \n \
  -p, --print print value of last evaluated expression, then quit instead of entering REPL \n \
  -n, --network name specify the name of the overlay network to join \n \
- -ip, --ip address: specifies the ip address to connect \n \
+ -a, --ip address: specifies the ip address to connect \n \
  -h, --help display help, then quit \n \
  -v, --version display version information, then quit \n \
  -q, --quiet quiet mode - don't print welcome message or any prompts \n \

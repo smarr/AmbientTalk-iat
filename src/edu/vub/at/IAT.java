@@ -296,7 +296,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a')
 		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqj", longopts, true);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqja:", longopts, true);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
