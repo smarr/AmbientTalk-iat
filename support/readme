@@ -1,9 +1,10 @@
 AmbientTalk/2 Project
 Copyright (c)  2006-2010 Software Languages Lab
-Original authors: Tom Van Cutsem & Stijn Mostinckx
 
-Developed and maintained by the Ambient Group
-http://soft.vub.ac.be/amop
+AmbientTalk/2 was originally designed by Tom Van Cutsem and Stijn Mostinckx, based on the AmbientTalk/1 language by Jessie Dedecker.
+AmbientTalk is now developed and maintained by the Ambient Group at SOFT:
+http://soft.vub.ac.be/amop/people
+http://soft.vub.ac.be/soft/research/amopcop
 
 This is the binary distribution of the AmbientTalk/2 interpreter.
 
