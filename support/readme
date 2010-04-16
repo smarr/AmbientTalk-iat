@@ -1,20 +1,9 @@
 AmbientTalk/2 Project
-Copyright (c)  2006-2009 Software Languages Lab
-Authors: Tom Van Cutsem & Stijn Mostinckx
+Copyright (c)  2006-2010 Software Languages Lab
+Original authors: Tom Van Cutsem & Stijn Mostinckx
 
-Developed and maintained by the Ambient Group: see http://soft.vub.ac.be/amop
-
-The Ambient Group is:
-Wolfgang De Meuter
-Elisa Gonzalez
-Andoni Lombide
-Stijn Mostinckx
-Kevin Pinte
-Christophe Scholliers
-Tom Van Cutsem
-
-Former contributors:
-Jessie Dedecker
+Developed and maintained by the Ambient Group
+http://soft.vub.ac.be/amop
 
 This is the binary distribution of the AmbientTalk/2 interpreter.
 
