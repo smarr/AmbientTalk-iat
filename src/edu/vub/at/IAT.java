@@ -95,7 +95,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 
 	private static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
-	private static final String _ENV_AT_HOME_ = "AT_HOME";
+	private static final String _ENV_AT_INIT_ = "AT_INIT";
 		
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
@@ -374,10 +374,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 			_OBJECTPATH_ARG_ = (envObjPath == null ? "" : (File.pathSeparator+envObjPath));
 		}
 		// always append the entry ':at=$AT_HOME/at'
-		String atHome = System.getProperty(_ENV_AT_HOME_);
-		if (atHome != null) {
-		  _OBJECTPATH_ARG_ += File.pathSeparator + "at="+atHome+File.separator+"at";
-		}
+		// deprecated now that iat automatically adds all atlib/* dirs in the distribution
+		// to the object path
+		// String atHome = System.getProperty(_ENV_AT_HOME_);
+		// if (atHome != null) {
+		//   _OBJECTPATH_ARG_ += File.pathSeparator + "at="+atHome+File.separator+"at";
+		// }
 		return _OBJECTPATH_ARG_;
 	}
 	
@@ -393,13 +395,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 				}
 				return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
 			} else {
-				// use the default init file under $AT_HOME/at/init/init.at provided with the distribution
-				String iatHome = System.getProperty(_ENV_AT_HOME_);
-				if (iatHome == null) {
-					abort("Cannot load init.at: none specified and no AT_HOME environment variable set", null);
+				// use the default init file under $AT_INIT provided with the distribution
+				String defaultInit = System.getProperty(_ENV_AT_INIT_);
+				if (defaultInit == null) {
+					abort("Cannot load init.at: none specified and no AT_INIT environment variable set", null);
 				} else {
-					// initFile = at/init/init.at
-					File initFile = new File(iatHome, "at"+File.separator+"init"+File.separator+"init.at");
+					File initFile = new File(defaultInit);
 					if (initFile.exists()) {
 						return NATParser.parse("init.at", new FileInputStream(initFile));	
 					} else {

@@ -15,7 +15,7 @@ readprompt = <<
 
 help = usage: iat [options] [file] [arguments]\n \
 Environment variables used by iat:\n \
-AT_HOME: path to the AmbientTalk home directory (used to find the native libraries) \n \
+AT_HOME: path to the AmbientTalk home directory (used to find default libraries and init file) \n \
 AT_OBJECTPATH: default objectpath to use \n \
 \n \
 Command Line Options: \n \
