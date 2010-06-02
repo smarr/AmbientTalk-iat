@@ -402,7 +402,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 				} else {
 					File initFile = new File(defaultInit);
 					if (initFile.exists()) {
-						return NATParser.parse("init.at", new FileInputStream(initFile));	
+						return NATParser.parse("init.at", new BufferedInputStream(new FileInputStream(initFile)));	
 					} else {
 						abort("Cannot load init.at from default location " + initFile.getPath(), null);
 					}
