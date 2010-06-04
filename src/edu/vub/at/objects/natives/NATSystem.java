@@ -119,11 +119,7 @@ public final class NATSystem extends NATByCopy {
 				}else{
 					toPrint = obj.meta_print().javaValue;
 				}
-				if (shell_._NO_JLINE_ARG_) {
-					IATIOStandard._INSTANCE_.print(toPrint);
-				}else{
-					IATIOJline._INSTANCE_.print(toPrint);
-				}
+				shell_.getIatio().print(toPrint);
 
 			}
 			return Evaluator.getNil();
@@ -138,11 +134,7 @@ public final class NATSystem extends NATByCopy {
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
 		try {
-			if (shell_._NO_JLINE_ARG_) {
-				IATIOStandard._INSTANCE_.println();
-			}else{
-				IATIOJline._INSTANCE_.println();
-			}
+			shell_.getIatio().println();
 			return Evaluator.getNil();
 		} catch (IOException e) {
 			throw new XIOProblem(e);

@@ -115,9 +115,11 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * @author tvcutsem
 	 */
 	public class ReadEvalPrintLoop extends EventLoop {
-
-		public ReadEvalPrintLoop() {
+		private IATIO iatio_;
+		
+		public ReadEvalPrintLoop(IATIO iatio) {
 			super("The Read-Eval-Print Loop");
+			iatio_ = iatio;
 		}
 
 		public void handle(Event event) {
@@ -152,11 +154,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 					try {
 						 // blocking input
 						String line = null;
-						if (IAT._NO_JLINE_ARG_) {
-						 line = IATIOStandard._INSTANCE_.readln(IAT._READ_PROMPT_);
-						}else{
-				         line = IATIOJline._INSTANCE_.readln(IAT._READ_PROMPT_);
-						}
+						line = iatio_.readln(IAT._READ_PROMPT_);
 				         if (line != null)
 				            // success<-apply([c])
 							Evaluator.trigger(owner, success, NATTable.of(NATText.atValue(line)), "readNextLine:");
@@ -167,37 +165,19 @@ public final class IAT extends EmbeddableAmbientTalk {
 					}
 			}
 		  });
-	    }	
+	    }
+		
+		private String readFromConsole() throws IOException {
+			if (!IAT._QUIET_ARG_) {
+				return iatio_.readln(_INPUT_PROMPT_);
+			} else {
+				return iatio_.readln();
+			}
+		}
 	}
 	
 	public ReadEvalPrintLoop repl_;
-	
-	/**
-	 * Performs the main boot sequence of the AmbientTalk VM and environment:
-	 * 1) Create a virtual machine using the correct object path and actor initialisation
-	 * 2) Create a new actor which knows how to interface with IAT (it knows execute: and the system object)
-	 * 3) Create a barrier which allows synchronizing between an actor and the REPL
-	 * 4) Ensure the barrier is informed of results by registering it as an observer
- 	 * 5) Send the main code specified by the user to be executed by the actor.
-	 * 
-	 * An important side-effect of calling boot is that the variable _evaluator will 
-	 * point to a newly create actor serving as iat's global evaluation context.
-	 */
-	public IAT() throws InterpreterException {
-		repl_ = new ReadEvalPrintLoop();
-		// use the super method to initialize a virtual machine and evaluator actor 
-		super.initialize(	parseInitFile(),
-							new SharedActorField[] {
-										computeSystemObject(_ARGUMENTS_ARG_),
-										computeWorkingDirectory(),
-										computeObjectPath(initObjectPathString()) },
-							(_NETWORK_NAME_ARG_ == null) ?
-						              ELVirtualMachine._DEFAULT_GROUP_NAME_ :
-						              _NETWORK_NAME_ARG_,
-						              (_IP_ADDRESS_ARG_ == null) ?
-								       ELVirtualMachine._DEFAULT_IP_ADDRESS_ :
-								       _IP_ADDRESS_ARG_);
-	}
+	public IATIO iatio_;
 
 	/**
 	 * Performs the main boot sequence of iat and the AmbientTalk VM.
@@ -206,6 +186,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * II) check for simple -help or -version arguments
 	 * 
 	 * III) Boot sequence:
+	 * 0) initialize the i/o (jline or default depending on -nojline flag).
 	 * 1) initialize the lobby using the object path (-o or default)
 	 * 2) add system object to the global lexical scope
 	 * 3) evaluate init file (-i or default) in context of the global scope
@@ -219,7 +200,17 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 *      print value of last evaluation
 	 *      quit
 	 *    else
-	 * 6) boot sequence for AmbientTalkVM - @see {@link #IAT()}
+	 * 6) boot sequence for AmbientTalkVM and environment:
+	 * 		1) Create a virtual machine using the correct object path and actor initialisation
+	 * 		2) Create a new actor which knows how to interface with IAT (it knows execute: and the system object)
+	 * 		3) Create a barrier which allows synchronizing between an actor and the REPL
+	 * 		4) Ensure the barrier is informed of results by registering it as an observer
+ 	 * 		5) Send the main code specified by the user to be executed by the actor.
+	 * 
+	 * An important side-effect of booting is that the variable _evaluator will 
+	 * point to a newly create actor serving as iat's global evaluation context 
+	 * and iatio_ will point to the i/o output used by iat and interpreter.
+	 * 
 	 * IV) enter REPL:
 	 *       1) print input prompt (unless -q)
 	 *       2) read input
@@ -232,14 +223,19 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * @throws InterpreterException
 	 */
 	public IAT(String[] args) throws InterpreterException{
-		// parse the command-line options
+		// I) parse the command-line options
 		parseArguments(args);
-
-		// handle -help or -version arguments
+		
+		// II) handle -help or -version arguments
 		processInformativeArguments();
+		
+		// III) boot sequence: 
+		
+		// set i/o used by AmbientTalk
+		initializeIATIO();
 
 		//boot the virtual machine and evaluator actor.
-		repl_ = new ReadEvalPrintLoop();
+		repl_ = new ReadEvalPrintLoop(iatio_);
 		// use the super method to initialize a virtual machine and evaluator actor 
 		super.initialize(	parseInitFile(),
 				new SharedActorField[] {
@@ -260,7 +256,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 		if (_PRINT_ARG_)
 			System.exit(0);
 
-		// go into the REPL
+		// IV) go into the REPL
 		startReadEvalPrintLoop();
 	}
 	
@@ -384,6 +380,19 @@ public final class IAT extends EmbeddableAmbientTalk {
 		return _OBJECTPATH_ARG_;
 	}
 	
+	/*
+	 * Initializes the I/O functionality of IAT
+	 * either jline or standard i/o
+	 * 
+	 */
+	private void initializeIATIO() {
+		if (_NO_JLINE_ARG_) {
+			iatio_ = IATIOStandard._INSTANCE_;
+		}else{
+			iatio_ = IATIOJline._INSTANCE_;
+		}
+	}
+
 	
 	private ATAbstractGrammar parseInitFile() throws InterpreterException {
 		// first, load the proper code from the init file
@@ -532,32 +541,12 @@ public final class IAT extends EmbeddableAmbientTalk {
 	
 	protected ATObject handleATException(String script, InterpreterException e) {
 		try {
-			if (_NO_JLINE_ARG_){
-				IATIOStandard._INSTANCE_.println(e.getMessage());
-			} else{
-				IATIOJline._INSTANCE_.println(e.getMessage());
-			}
+			iatio_.println(e.getMessage());
 			e.printAmbientTalkStackTrace(System.out);
 		} catch(IOException e2) {
 			Logging.Init_LOG.error("error while printing exception stack trace:", e2);
 		}
 		return Evaluator.getNil();
-	}
-	
-	private static String readFromConsole() throws IOException {
-		if (!_QUIET_ARG_) {
-			if (_NO_JLINE_ARG_){
-				return IATIOStandard._INSTANCE_.readln(_INPUT_PROMPT_);
-			} else{
-			  return IATIOJline._INSTANCE_.readln(_INPUT_PROMPT_);
-			}
-		} else {
-			if (_NO_JLINE_ARG_){
-				return IATIOStandard._INSTANCE_.readln();
-			} else{
-				return IATIOJline._INSTANCE_.readln();
-			}
-		}
 	}
 	
 	public void evalAndPrint(String script, PrintStream output) {
@@ -596,6 +585,8 @@ public final class IAT extends EmbeddableAmbientTalk {
 		return super.computeWorkingDirectory();
 	}
 	
+	public IATIO getIatio(){return iatio_;}
+		
 	private static void printVersion() {
 		String progname = _IAT_PROPS_.getProperty("name", "unknown program name");
 		String version = _IAT_PROPS_.getProperty("version","unknown version");
