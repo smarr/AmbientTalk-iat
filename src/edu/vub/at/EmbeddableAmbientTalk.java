@@ -281,7 +281,7 @@ public abstract class EmbeddableAmbientTalk {
 	 * 
 	 */
 	public SharedActorField computeObjectPath(String objectPath) {
-		// split the object path using ':' (on *nix)
+		// split the object path using ':' (on *nix) or ';' (on windows)
         String[] roots = new RE(pathSeparatorRegExp).split(objectPath);
 		LinkedList namedPaths = new LinkedList();
 		

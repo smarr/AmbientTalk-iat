@@ -24,12 +24,10 @@ do
   OBJPATH="$ROOT=$AT_HOME/atlib/$ROOT:$DEFAULT_OBJPATH"
 done
 
-# echo object path is $AT_OBJECTPATH:$DEFAULT_OBJPATH
-
 # invoke the IAT shell via the JVM and:
-# - pass the AT_INIT and AT_OBJECTPATH environment variables to the JVM environment via -D
+# - pass the AT_HOME, AT_INIT and AT_OBJECTPATH environment variables to the JVM environment via -D
 # - make sure to include all the jar files in the ./lib directory
 # - invoke the main IAT class
 # - pass any parameters to this script to IAT
 # - pipe System.err to the console
-java -DAT_INIT=$AT_HOME/atlib/at/init/init.at -DAT_HOME=$AT_HOME -DAT_OBJECTPATH=$AT_OBJECTPATH:$DEFAULT_OBJPATH -classpath .:$CLASSPATH:$JARPATH edu.vub.at.IAT "$@" 2> /dev/console
+java -DAT_HOME=$AT_HOME -DAT_INIT=$AT_HOME/atlib/at/init/init.at -DAT_OBJECTPATH=$AT_OBJECTPATH -DAT_LIBPATH=$DEFAULT_OBJPATH -classpath .:$CLASSPATH:$JARPATH edu.vub.at.IAT "$@" 2> /dev/console

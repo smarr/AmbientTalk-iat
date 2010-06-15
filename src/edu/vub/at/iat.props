@@ -23,6 +23,7 @@ Command Line Options: \n \
     (the content of this file is evaluated in the context of the global lexical root) \n \
  -o, --objectpath objectpath: specifies the object-path, a list of 'name=directory' pairs separated by ':' (on mac/unix) or ';' (on windows)\n \
    The names will be available as slots in the 'lobby' object bound to the appropriate module \n \
+   Setting an objectpath using -o overrides any setting of the AT_OBJECTPATH variable \n \
  -e, --eval codestring: evaluates the given codestring and ignores the filename \n \
  -p, --print print value of last evaluated expression, then quit instead of entering REPL \n \
  -n, --network name specify the name of the overlay network to join \n \

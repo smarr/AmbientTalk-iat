@@ -97,6 +97,7 @@ public final class IAT extends EmbeddableAmbientTalk {
 	private static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
 	private static final String _ENV_AT_INIT_ = "AT_INIT";
+	private static final String _ENV_AT_LIBPATH_ = "AT_LIBPATH";
 		
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
@@ -362,22 +363,20 @@ public final class IAT extends EmbeddableAmbientTalk {
 	 * The slot name corresponds to the last name of the directory. The slot value corresponds
 	 * to a namespace object initialized with the directory.
 	 * 
-	 * If the user did not specify an objectpath, the default is $AT_OBJECTPATH:at=$AT_HOME/at
+	 * The object path always ends in the 'AT_LIBPATH" which is set by the 'iat' script to equal
+	 * "at=$AT_HOME/atlib/at:demo=$AT_HOME/atlib/demo:..."
+	 * 
+	 * If the user did not specify an objectpath using -o, a default object path
+	 * is constructed based on the environment variable $AT_OBJECTPATH
 	 */
 	private static String initObjectPathString() {
-		// if -o was not used, consult the AT_OBJECTPATH environment variable
+		// if -o was not used, consult the AT_OBJECTPATH environment variable instead
 		if (_OBJECTPATH_ARG_ == null) {
-			String envObjPath = System.getProperty(_ENV_AT_OBJECTPATH_);
-			_OBJECTPATH_ARG_ = (envObjPath == null ? "" : (File.pathSeparator+envObjPath));
+			_OBJECTPATH_ARG_ = File.pathSeparator + System.getProperty(_ENV_AT_OBJECTPATH_, "");
 		}
-		// always append the entry ':at=$AT_HOME/at'
-		// deprecated now that iat automatically adds all atlib/* dirs in the distribution
-		// to the object path
-		// String atHome = System.getProperty(_ENV_AT_HOME_);
-		// if (atHome != null) {
-		//   _OBJECTPATH_ARG_ += File.pathSeparator + "at="+atHome+File.separator+"at";
-		// }
-		return _OBJECTPATH_ARG_;
+		// always append the root atlib directories
+		// 'iat' automatically passes all of these atlib/* dirs in the 'AT_LIBPATH' env var
+		return _OBJECTPATH_ARG_ + File.pathSeparator + System.getProperty(_ENV_AT_LIBPATH_, "");
 	}
 	
 	/*

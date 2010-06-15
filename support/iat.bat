@@ -10,4 +10,4 @@
 @rem - make sure to include all the jar files in the ./lib directory
 @rem - invoke the main IAT class
 @rem - pass any parameters to this script to IAT
-@java -DAT_INIT=%AT_HOME%\atlib\at\init\init.at -DAT_OBJECTPATH=%DEFAULT_OBJPATH% -classpath %AT_CLASSPATH% edu.vub.at.IAT %1 %2 %3 %4 %5 %6 %7 %8 %9
+@java -DAT_HOME=%AT_HOME% -DAT_INIT=%AT_HOME%\atlib\at\init\init.at -DAT_OBJECTPATH=%DEFAULT_OBJPATH% -classpath %AT_CLASSPATH% edu.vub.at.IAT %1 %2 %3 %4 %5 %6 %7 %8 %9
