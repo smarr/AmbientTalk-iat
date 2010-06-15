@@ -32,4 +32,4 @@ done
 # - invoke the main IAT class
 # - pass any parameters to this script to IAT
 # - pipe System.err to the console
-java -DAT_INIT=$AT_HOME/atlib/at/init/init.at -DAT_OBJECTPATH=$AT_OBJECTPATH:$DEFAULT_OBJPATH -classpath .:$CLASSPATH:$JARPATH edu.vub.at.IAT "$@" 2> /dev/console
+java -DAT_INIT=$AT_HOME/atlib/at/init/init.at -DAT_HOME=$AT_HOME -DAT_OBJECTPATH=$AT_OBJECTPATH:$DEFAULT_OBJPATH -classpath .:$CLASSPATH:$JARPATH edu.vub.at.IAT "$@" 2> /dev/console
