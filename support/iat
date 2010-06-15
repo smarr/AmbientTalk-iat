@@ -21,7 +21,7 @@ fi
 # all top-level directories in the atlib/ subdirectory become available in the lobby
 for ROOT in `ls atlib`
 do
-  OBJPATH="$ROOT=$AT_HOME/atlib/$ROOT:$DEFAULT_OBJPATH"
+  DEFAULT_OBJPATH="$ROOT=$AT_HOME/atlib/$ROOT:$DEFAULT_OBJPATH"
 done
 
 # invoke the IAT shell via the JVM and:
