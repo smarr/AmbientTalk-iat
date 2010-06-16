@@ -27,11 +27,11 @@ Command Line Options: \n \
  -e, --eval codestring: evaluates the given codestring and ignores the filename \n \
  -p, --print print value of last evaluated expression, then quit instead of entering REPL \n \
  -n, --network name specify the name of the overlay network to join \n \
- -a, --ip address: specifies the ip address to connect \n \
+ -a, --ip address: specifies the ip address to be used by iat when connecting to the network \n \
  -h, --help display help, then quit \n \
  -v, --version display version information, then quit \n \
  -q, --quiet quiet mode - don't print welcome message or any prompts \n \
- -j, --nojline disables jline library which provides iat with command-line editing and history \n \ 
+ -j, --nojline disables jline support which provides iat with command-line editing and history \n \ 
 \n \
 Program arguments:\n \
  an optional filename and optional arguments to the script\n \
