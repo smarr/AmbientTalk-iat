@@ -19,7 +19,7 @@ if ! [ $AT_HOME ]; then
 fi
 
 # all top-level directories in the atlib/ subdirectory become available in the lobby
-for ROOT in `ls atlib`
+for ROOT in `ls $AT_HOME/atlib`
 do
   DEFAULT_OBJPATH="$ROOT=$AT_HOME/atlib/$ROOT:$DEFAULT_OBJPATH"
 done
