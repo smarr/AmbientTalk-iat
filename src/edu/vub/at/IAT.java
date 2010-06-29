@@ -92,7 +92,7 @@ import gnu.getopt.LongOpt;
  * 
  * @author tvcutsem
  */
-public final class IAT extends EmbeddableAmbientTalk {
+public class IAT extends EmbeddableAmbientTalk {
 
 	private static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
