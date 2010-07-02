@@ -110,7 +110,7 @@ public final class IATIOJline extends IATIO{
 	 * @return the next line on the input stream or null if EOF has been reached
 	 */
 	public String readln() throws IOException {
-		return console_.readLine(); //new Character((char)0));
+		return console_.readLine(""); //new Character((char)0));
 	}
 
 }

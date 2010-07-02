@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Properties;
 
 import edu.vub.at.actors.eventloops.Event;
@@ -138,7 +139,27 @@ public class IAT extends EmbeddableAmbientTalk {
 					} else if (input.startsWith(":")) {
 						processShellCommand(input.substring(1));
 					} else {
-						evalAndPrint(input, System.out);
+						if (countBalanced(input) <= 0) {
+							// no outstanding opening braces, input is just one line
+							evalAndPrint(input, System.out);
+						} else {
+							// there are outstanding opening braces, emit continuation lines
+							StringBuffer multilineInput = new StringBuffer(input);
+							int diff = countBalanced(input);
+							do {
+								// print a continuation prompt of size diff
+								printContinuationPrompt(diff);
+								// read another line from the console, this time without a leading prompt
+								input = iatio_.readln();
+								multilineInput.append(input);
+								// perform another brace count, this time on the extended input
+								diff = countBalanced(multilineInput.toString());
+								// continue repeating until either the extended input balances,
+								// or until the user explicitly inputs an empty line
+							} while (diff != 0 && !input.isEmpty());
+							// finally, evaluate the multi-line input
+							evalAndPrint(multilineInput.toString(), System.out);
+						}
 					}
 				} catch (IOException e) {
 					abort("Error reading input: "+e.getMessage(), e);
@@ -174,6 +195,16 @@ public class IAT extends EmbeddableAmbientTalk {
 			} else {
 				return iatio_.readln();
 			}
+		}
+		
+		/**
+		 * Prints a string '.   ' to the console, where
+		 * the number of spaces printed is specified by the diff parameter
+		 */
+		private void printContinuationPrompt(int diff) {
+			char[] spaces = new char[diff];
+			Arrays.fill(spaces, ' ');
+			System.out.print("." + new String(spaces));
 		}
 	}
 	
@@ -602,5 +633,15 @@ public class IAT extends EmbeddableAmbientTalk {
 		} else {
 			System.out.println("Unknown command: " + command);
 		}
+	}
+	
+	/**
+	 * @return the difference between the number of opening '(', '{' and '[' tokens
+	 * and the number of closing ')', '}', ']' tokens in the input string.
+	 */
+	public static int countBalanced(String input) {
+		int open = input.replaceAll("[^(\\[{]","").length();
+		int close = input.replaceAll("[^)\\]}]","").length();
+		return open - close;
 	}
 }
