@@ -91,11 +91,7 @@ public final class IATIOStandard extends IATIO {
 	public String readln(String prompt) throws IOException {
 		//providing equivalent functionality to jline (e.g. console_.readLine(prompt);)
 		output_.print(prompt);
-		String read = readln();
-		if (read !=null ){
-			output_.println(read);
-		}
-	    return read;
+	    return readln();
 	}
 	
 	
