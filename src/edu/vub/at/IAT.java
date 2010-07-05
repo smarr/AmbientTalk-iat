@@ -151,7 +151,7 @@ public class IAT extends EmbeddableAmbientTalk {
 								printContinuationPrompt(diff);
 								// read another line from the console, this time without a leading prompt
 								input = iatio_.readln();
-								multilineInput.append(input);
+								multilineInput.append(input).append("\n");
 								// perform another brace count, this time on the extended input
 								diff = countBalanced(multilineInput.toString());
 								// continue repeating until either the extended input balances,
