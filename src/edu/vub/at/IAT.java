@@ -136,6 +136,8 @@ public class IAT extends EmbeddableAmbientTalk {
 					if (input == null) {
 						this.stopProcessing();
 						return;
+					} else if (input.trim().isEmpty()) {
+						// ignore empty input strings
 					} else if (input.startsWith(":")) {
 						processShellCommand(input.substring(1));
 					} else {
