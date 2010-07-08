@@ -62,19 +62,19 @@ public final class IATIOJline extends IATIO{
 	// output
 	
 	public void print(String txt) throws IOException {
-		console_.printString(txt);
+		console_.printString(txt); console_.flushConsole();
 	}
 
 	public void print(int nbr) throws IOException {
-		console_.printString(Integer.toString(nbr));
+		print(Integer.toString(nbr));
 	}
 	
 	public void print(double frc) throws IOException {
-		console_.printString(Double.toString(frc));
+		print(Double.toString(frc));
 	}
 	
 	public void print(boolean bool) throws IOException {
-		console_.printString(Boolean.toString(bool));
+		print(Boolean.toString(bool));
 	}
 	
 	public void println(String txt) throws IOException {

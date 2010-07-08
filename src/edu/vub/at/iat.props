@@ -12,6 +12,7 @@ version = 2.18 (development)
 inputprompt = >
 outputprompt = >>
 readprompt = <<
+continuationprompt = .
 
 help = usage: iat [options] [file] [arguments]\n \
 Environment variables used by iat:\n \

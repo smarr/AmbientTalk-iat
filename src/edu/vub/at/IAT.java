@@ -103,8 +103,8 @@ public class IAT extends EmbeddableAmbientTalk {
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
 	private static String _OUTPUT_PROMPT_;
-	public static String _READ_PROMPT_;
-	
+	public static String _READ_PROMPT_;	
+	public static String _CONTINUATION_PROMPT_;
 
 	/**
 	 * The read-eval-print loop is modelled as an event loop with
@@ -203,10 +203,12 @@ public class IAT extends EmbeddableAmbientTalk {
 		 * Prints a string '.   ' to the console, where
 		 * the number of spaces printed is specified by the diff parameter
 		 */
-		private void printContinuationPrompt(int diff) {
-			char[] spaces = new char[diff];
-			Arrays.fill(spaces, ' ');
-			System.out.print("." + new String(spaces));
+		private void printContinuationPrompt(int diff) throws IOException {
+			if (!IAT._QUIET_ARG_ && !IAT._NO_JLINE_ARG_) {
+				char[] spaces = new char[diff];
+				Arrays.fill(spaces, ' ');
+				iatio_.print(_CONTINUATION_PROMPT_ + new String(spaces));
+			}
 		}
 	}
 	
@@ -386,6 +388,7 @@ public class IAT extends EmbeddableAmbientTalk {
 			_INPUT_PROMPT_ = _IAT_PROPS_.getProperty("inputprompt", ">");
 			_OUTPUT_PROMPT_ = _IAT_PROPS_.getProperty("outputprompt", ">>");
 			_READ_PROMPT_ = _IAT_PROPS_.getProperty("readprompt", "<<");
+			_CONTINUATION_PROMPT_ = _IAT_PROPS_.getProperty("continuationprompt", ".");
 		} catch (IOException e) {
 			System.err.println("Fatal error while trying to load internal properties: "+e.getMessage());
 		}
