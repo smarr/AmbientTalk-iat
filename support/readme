@@ -1,7 +1,9 @@
 AmbientTalk/2 Project
 Copyright (c)  2006-2010 Software Languages Lab
 
-AmbientTalk/2 was originally designed by Tom Van Cutsem and Stijn Mostinckx, based on the AmbientTalk/1 language by Jessie Dedecker.
+AmbientTalk/2 was originally designed by Tom Van Cutsem and Stijn Mostinckx,
+based on the AmbientTalk/1 language by Jessie Dedecker.
+
 AmbientTalk is now developed and maintained by the Ambient Group at SOFT:
 http://soft.vub.ac.be/amop/people
 http://soft.vub.ac.be/soft/research/amopcop
@@ -9,18 +11,25 @@ http://soft.vub.ac.be/soft/research/amopcop
 This is the binary distribution of the AmbientTalk/2 interpreter.
 
 A quick tour of what's included:
-- AmbientTalk 2.tmbundle: the TextMate support bundle, simply drag it on to TextMate, if you have that application installed.
-- iat (mac/linux) / iat.bat (windows): the shell script that starts the interactive ambienttalk shell (iat).
-- ambienttalk2.jar: the code for the AT/2 interpreter, preferably to be ran via the iat script
-- at: the 'system library' that is shipped with the language. As a user, you can modify the files, but at your own risk :-)
-- lib: external Java libraries for the interpreter
+- iat (mac/linux) / iat.bat (windows): the shell script that starts the
+  interactive ambienttalk shell (iat).
+- ambienttalk2.jar: the code for the AT/2 interpreter, preferably to be
+  ran via the iat script
+- atlib: the 'system library' that is shipped with the language.
+  As a user, you can modify the files, but at your own risk :-)
+- jlib: external Java libraries for the interpreter
 
-Do not forget to set the value of the AT_HOME environment variable when running iat from within TextMate.
+If you run iat from within the TextMate editor on Mac OS X, do not forget
+to set the AT_HOME environment variable.
 
-Note to windows users: iat.bat has been reported not to work when the AT_HOME directory contains spaces, so consider placing your AmbientTalk distribution in a directory that does not contain spaces.
+Note to windows users: iat.bat has been reported not to work when the
+AT_HOME directory contains spaces, so consider placing your AmbientTalk
+distribution in a directory that does not contain spaces.
 
-For service discovery, AmbientTalk makes use of IP multicasting. AmbientTalk broadcasts messages to IP 244.0.0.1 on port 4446. Make sure your firewall does not block this port.
+For service discovery, AmbientTalk makes use of IP multicasting.
+AmbientTalk broadcasts messages to IP 244.0.0.1 on port 4446.
+Make sure your firewall does not block this port.
 
 For more information, changelists and version information please visit:
 http://soft.vub.ac.be/amop
-http://code.google.com/p/ambienttalk
+http://ambienttalk.googlecode.com
