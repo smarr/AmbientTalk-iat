@@ -31,7 +31,7 @@ Command Line Options: \n \
  -h, --help display help, then quit \n \
  -v, --version display version information, then quit \n \
  -q, --quiet quiet mode - don't print welcome message or any prompts \n \
- -j, --nojline disables jline support which provides iat with command-line editing and history \n \ 
+ -j, --nojline disables jline support which provides iat with command-line editing and history \n \
 \n \
 Program arguments:\n \
  an optional filename and optional arguments to the script\n \
@@ -48,6 +48,6 @@ Shell commands:\n \
  Valid commands are:\n \
    :q or :quit = quit the iat shell\n \
    :l or :load filename = load the given filename, relative to iat's startup dir\n \
-Multi-line input: if the input entered on the command line contains unbalanced braces {},\
-brackets [] or parens (), iat treats the input as incomplete, prints a continuation prompt (.)\
-and awaits more input.\
+Multi-line input: if the input entered on the command line contains unbalanced braces {}, \n\
+brackets [] or parens (), iat treats the input as incomplete, prints a continuation prompt (.) \n\
+and awaits more input.\n\
