@@ -8,7 +8,7 @@
 # help: the text to show when the user asks for help
 
 name = Interactive AmbientTalk Shell
-version = 2.17 (development)
+version = 2.17 [build080710]
 inputprompt = >
 outputprompt = >>
 readprompt = <<
@@ -48,3 +48,6 @@ Shell commands:\n \
  Valid commands are:\n \
    :q or :quit = quit the iat shell\n \
    :l or :load filename = load the given filename, relative to iat's startup dir\n \
+Multi-line input: if the input entered on the command line contains unbalanced braces {},\
+brackets [] or parens (), iat treats the input as incomplete, prints a continuation prompt (.)\
+and awaits more input.\
