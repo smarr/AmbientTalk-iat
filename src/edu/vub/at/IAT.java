@@ -146,7 +146,7 @@ public class IAT extends EmbeddableAmbientTalk {
 							evalAndPrint(input, System.out);
 						} else {
 							// there are outstanding opening braces, emit continuation lines
-							StringBuffer multilineInput = new StringBuffer(input);
+							StringBuffer multilineInput = new StringBuffer(input).append("\n");
 							int diff = countBalanced(input);
 							do {
 								// print a continuation prompt of size diff
