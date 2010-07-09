@@ -149,10 +149,8 @@ public class IAT extends EmbeddableAmbientTalk {
 							StringBuffer multilineInput = new StringBuffer(input).append("\n");
 							int diff = countBalanced(input);
 							do {
-								// print a continuation prompt of size diff
-								printContinuationPrompt(diff);
-								// read another line from the console, this time without a leading prompt
-								input = iatio_.readln();
+								// read another line from the console, this time with a leading continuation prompt
+								input = readContinuationLine(diff);
 								multilineInput.append(input).append("\n");
 								// perform another brace count, this time on the extended input
 								diff = countBalanced(multilineInput.toString());
@@ -200,14 +198,19 @@ public class IAT extends EmbeddableAmbientTalk {
 		}
 		
 		/**
-		 * Prints a string '.   ' to the console, where
+		 * In quiet mode or no-jline mode, just reads a line from the Console,
+		 * otherwise calculate a continuation prompt based on size diff, prompt,
+		 * then read a line. The continuation prompt is of the form
+		 * '.   ', where '.' is the contination prompt and
 		 * the number of spaces printed is specified by the diff parameter
 		 */
-		private void printContinuationPrompt(int diff) throws IOException {
+		private String readContinuationLine(int diff) throws IOException {
 			if (!IAT._QUIET_ARG_ && !IAT._NO_JLINE_ARG_) {
 				char[] spaces = new char[diff];
 				Arrays.fill(spaces, ' ');
-				iatio_.print(_CONTINUATION_PROMPT_ + new String(spaces));
+				return iatio_.readln(_CONTINUATION_PROMPT_ + new String(spaces));
+			} else {
+				return iatio_.readln();
 			}
 		}
 	}

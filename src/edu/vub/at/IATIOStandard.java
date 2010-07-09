@@ -84,14 +84,14 @@ public final class IATIOStandard extends IATIO {
 	}
 	
 	// input
-
+	
 	/**
 	 * @return the next line on the input stream or null if EOF has been reached
 	 */
 	public String readln(String prompt) throws IOException {
 		//providing equivalent functionality to jline (e.g. console_.readLine(prompt);)
 		output_.print(prompt);
-	    return readln();
+		return readln();
 	}
 	
 	
@@ -107,9 +107,13 @@ public final class IATIOStandard extends IATIO {
 				inputBuffer.setCharAt(inputBuffer.length() -1, '\n');
 				inputBuffer.append(input_.readLine());
 			}
-			return inputBuffer.toString();
+			String read = inputBuffer.toString();
+			if (!IAT._QUIET_ARG_) {
+				output_.println(read);
+			}
+			return read;
 		} else{
-		  return null;
+		    return null;
 		}
 	}
 
