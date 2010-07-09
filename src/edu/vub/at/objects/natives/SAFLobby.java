@@ -72,11 +72,32 @@ public class SAFLobby extends SharedActorField {
 			
 			String name = (String) entry[0];
 			File dir = (File) entry[1];
-	
-			// convert the path name into an AmbientTalk selector
-			ATSymbol selector = Reflection.downSelector(name);
+				
 			try {
-			  lobby.meta_defineField(selector, new NATNamespace(File.separator+name, dir));
+				// If there are dots in name, walk the tree and insert it at the right place.
+				if (name.indexOf(".") == -1) {
+					// convert the path name into an AmbientTalk selector
+					ATSymbol selector = Reflection.downSelector(name);
+					lobby.meta_defineField(selector, new NATNamespace(File.separator+name, dir));
+				} else {
+					String path[] = name.split("\\.");
+					ATObject current = lobby;
+					for (int i = 0; i < path.length; i++) {
+						ATSymbol selector = Reflection.downSelector(path[i]);
+						
+						if (i == path.length - 1) {							
+							current.meta_defineField(selector, new NATNamespace(File.separator+name, dir));
+						} else {
+							if (!current.meta_respondsTo(selector).asNativeBoolean().javaValue) {
+								ATObject newNamespace = new NATObject();
+								current.meta_defineField(selector, newNamespace);
+								current = newNamespace;
+							} else {
+								current = current.meta_invokeField(current, selector);								
+							}
+						}
+					}
+				}
 			} catch (XDuplicateSlot e) {
 			  Logging.Init_LOG.warn("Shadowed path on classpath: " + name);
 			} catch (InterpreterException e) {
