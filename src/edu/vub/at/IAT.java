@@ -49,7 +49,6 @@ import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATClosure;
-import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.natives.NATTable;
 import edu.vub.at.objects.natives.NATText;
@@ -57,7 +56,6 @@ import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
 import edu.vub.at.util.logging.Logging;
-
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
@@ -95,14 +93,14 @@ import gnu.getopt.LongOpt;
  */
 public class IAT extends EmbeddableAmbientTalk {
 
-	private static final String _EXEC_NAME_ = "iat";
+	protected static final String _EXEC_NAME_ = "iat";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
-	private static final String _ENV_AT_INIT_ = "AT_INIT";
+	protected static final String _ENV_AT_INIT_ = "AT_INIT";
 	private static final String _ENV_AT_LIBPATH_ = "AT_LIBPATH";
 		
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
-	private static String _OUTPUT_PROMPT_;
+	protected static String _OUTPUT_PROMPT_;
 	public static String _READ_PROMPT_;	
 	public static String _CONTINUATION_PROMPT_;
 
@@ -298,7 +296,8 @@ public class IAT extends EmbeddableAmbientTalk {
 		// IV) go into the REPL
 		startReadEvalPrintLoop();
 	}
-	
+	public IAT(){
+	}
 	// program arguments
 	public static String _FILE_ARG_ = null;
 	public static String[] _ARGUMENTS_ARG_ = null;
@@ -314,6 +313,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	public static boolean _VERSION_ARG_ = false;
 	public static boolean _QUIET_ARG_ = false;
 	public static boolean _NO_JLINE_ARG_ = false;
+	public static boolean _DEBUG_ARG_ = false;
 	
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
@@ -329,10 +329,11 @@ public class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("version", LongOpt.NO_ARGUMENT, null, 'v'),
 			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q'),
 			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j'),
-			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a')
+			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a'),
+			new LongOpt("Xdebug", LongOpt.NO_ARGUMENT, null, 'd')
 		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqja:", longopts, true);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqjad:", longopts, true);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
@@ -347,9 +348,10 @@ public class IAT extends EmbeddableAmbientTalk {
 		          case 'q': _QUIET_ARG_ = true; break;
 		          case 'j': _NO_JLINE_ARG_ = true;break;
 		          case 'a': _IP_ADDRESS_ARG_ = g.getOptarg(); break;
+		          case 'd': _DEBUG_ARG_ = true;break;
 		          case '?':
 		        	   // getopt() already printed an error
-		        	   System.out.println("There were illegal options, quitting.");
+		        	   System.out.println("There were illegal options, quittING.");
 		        	   System.exit(1);
 		          default:
 		            System.err.print("getopt() returned " + c + "\n");
@@ -408,7 +410,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * If the user did not specify an objectpath using -o, a default object path
 	 * is constructed based on the environment variable $AT_OBJECTPATH
 	 */
-	private static String initObjectPathString() {
+	protected static String initObjectPathString() {
 		// if -o was not used, consult the AT_OBJECTPATH environment variable instead
 		if (_OBJECTPATH_ARG_ == null) {
 			_OBJECTPATH_ARG_ = File.pathSeparator + System.getProperty(_ENV_AT_OBJECTPATH_, "");
@@ -423,7 +425,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * either jline or standard i/o
 	 * 
 	 */
-	private void initializeIATIO() {
+	protected void initializeIATIO() {
 		if (_NO_JLINE_ARG_) {
 			iatio_ = IATIOStandard._INSTANCE_;
 		}else{
@@ -431,8 +433,25 @@ public class IAT extends EmbeddableAmbientTalk {
 		}
 	}
 
+	protected String getInitDebuggerCode(File initFile) {
+		try{
+			// initDebugger.at adds the behaviour slot to the default actor mirror so that actors can be debuggeable
+			String initFilePath = initFile.getAbsolutePath();
+			String initDebugPath = initFilePath.replaceFirst("init.at", "initDebugger.at");
+			File initDebugFile = new File (initDebugPath);
+			if (initDebugFile == null) {
+				abort("Cannot load initDebugger.at: " + initDebugPath, null);
+			} else { 
+				return Evaluator.loadContentOfFile(initDebugFile);		
+			}
+		} catch (IOException e) {
+			abort("Error reading the initDebugger file: "+e.getMessage(), e);
+		}
+
+		return null;
+	}
 	
-	private ATAbstractGrammar parseInitFile() throws InterpreterException {
+	protected ATAbstractGrammar parseInitFile() throws InterpreterException {
 		// first, load the proper code from the init file
 		try {
 			if (_INIT_ARG_ != null) {
@@ -441,7 +460,13 @@ public class IAT extends EmbeddableAmbientTalk {
 				if (!initFile.exists()) {
 					abort("Unknown init file: "+_INIT_ARG_, null);
 				}
-				return NATParser.parse(initFile.getName(), Evaluator.loadContentOfFile(initFile));
+				String initCode = Evaluator.loadContentOfFile(initFile);
+				if (_DEBUG_ARG_) {
+					 String initDebugCode = getInitDebuggerCode(initFile);
+					 return NATParser.parse(initFile.getName(), initDebugCode + initCode);
+				} else{
+				  return NATParser.parse(initFile.getName(), initCode);
+				}
 			} else {
 				// use the default init file under $AT_INIT provided with the distribution
 				String defaultInit = System.getProperty(_ENV_AT_INIT_);
@@ -450,7 +475,14 @@ public class IAT extends EmbeddableAmbientTalk {
 				} else {
 					File initFile = new File(defaultInit);
 					if (initFile.exists()) {
-						return NATParser.parse("init.at", new BufferedInputStream(new FileInputStream(initFile)));	
+						String initCode = Evaluator.loadContentOfFile(initFile);
+						if (_DEBUG_ARG_) {
+							 String initDebugCode = getInitDebuggerCode(initFile);
+							 return NATParser.parse(initFile.getName(), initDebugCode + initCode);
+						} else{
+							//new BufferedInputStream(new FileInputStream(initFile));
+						  return NATParser.parse(initFile.getName(), initCode);	
+						}
 					} else {
 						abort("Cannot load init.at from default location " + initFile.getPath(), null);
 					}
@@ -474,7 +506,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * Subsequently evaluates the main code that was read and prints the result of evaluation 
 	 * on the console.
 	 */
-	private void loadMainCode() {
+	protected void loadMainCode() {
 		// evaluate startup code, which is either the given code (-e) or the code in the main file
 		if (_EVAL_ARG_ != null) {
 			// the executed script is provided via the command line
@@ -487,7 +519,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		}
 	}
 	
-	private void loadCodeFromFile(String sourcePath) {
+	protected void loadCodeFromFile(String sourcePath) {
 		// evaluate the main file
 		File source = new File(sourcePath.trim());
 		if (!source.exists()) {
@@ -511,7 +543,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * This allows scheduling a parse tree for execution and implicitly synchronizes upon the event
 	 * until the result is available. As such, this method can be written as an ordinary loop.
 	 */
-	private void startReadEvalPrintLoop() {
+	protected void startReadEvalPrintLoop() {
 		scriptSource_ = "REPL";
 		repl_.start();
 		

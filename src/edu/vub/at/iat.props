@@ -33,6 +33,7 @@ Command Line Options: \n \
  -v, --version display version information, then quit \n \
  -q, --quiet quiet mode - don't print welcome message or any prompts \n \
  -j, --nojline disables jline support which provides iat with command-line editing and history \n \
+ -d, --Xdebug enables debugging support for all actors created within this AmbientTalk virtual machine \n \
 \n \
 Program arguments:\n \
  an optional filename and optional arguments to the script\n \
