@@ -333,7 +333,7 @@ public class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("Xdebug", LongOpt.NO_ARGUMENT, null, 'd')
 		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:phvqjad:", longopts, true);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:a:phvqjd:", longopts, true);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
