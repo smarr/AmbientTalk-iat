@@ -40,6 +40,7 @@ import edu.vub.at.objects.ATNil;
 import edu.vub.at.objects.ATObject;
 import edu.vub.at.objects.ATTable;
 import edu.vub.at.util.logging.Logging;
+import edu.vub.util.TempFieldGenerator;
 
 import java.io.IOException;
 
@@ -78,6 +79,10 @@ public final class NATSystem extends NATByCopy {
 	
 	public NATText meta_print() throws InterpreterException {
 		return NATText.atValue("<native object: system>");
+	}
+	
+	public NATText impl_asCode(TempFieldGenerator objectMap) throws InterpreterException {
+		return NATText.atValue("system");
 	}
 	
 	/**
