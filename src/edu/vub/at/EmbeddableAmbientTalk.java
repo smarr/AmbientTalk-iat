@@ -32,13 +32,16 @@ import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.SharedActorField;
 import edu.vub.at.eval.Evaluator;
 import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XAmbienttalk;
 import edu.vub.at.exceptions.XIOProblem;
 import edu.vub.at.exceptions.XIllegalOperation;
 import edu.vub.at.exceptions.XParseError;
 import edu.vub.at.exceptions.XTypeMismatch;
 import edu.vub.at.objects.ATAbstractGrammar;
 import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.ATTypeTag;
 import edu.vub.at.objects.coercion.Coercer;
+import edu.vub.at.objects.natives.NATNumber;
 import edu.vub.at.objects.natives.SAFLobby;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
@@ -78,15 +81,32 @@ public abstract class EmbeddableAmbientTalk {
 	 * Initializes a new instance, which is done in a method rather than a constructor to allow the use of 
 	 * instance methods such as computeObjectPath etc. to be used to pass in arguments.
 	 */
-	public void initialize(ATAbstractGrammar ast, SharedActorField[] fields, String networkName, String ipAddress) {
+	public void initialize(ATAbstractGrammar initCodeAst, SharedActorField[] fields, String networkName, String ipAddress) {
 		try {
 			// initialize the virtual machine using object path, init file and network name
-			virtualMachine_ = new ELVirtualMachine(ast, fields, networkName, ipAddress);
+			virtualMachine_ = new ELVirtualMachine(initCodeAst, fields, networkName, ipAddress);
 						
 			// create a new actor on this vm with the appropriate main body.
 			evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
 		} catch (InterpreterException cause) {
 			abort("Fatal error while initializing the evaluator actor:" + cause.getMessage(), cause);
+		}
+	}
+	
+	//-Reset VM into fresh start-up with a reset environment and non-actors.
+	public void reinitialize(ATAbstractGrammar initCodeAst) {
+		ATObject result = virtualMachine_.sync_event_softReset(initCodeAst);
+		try {
+			if (result.asNativeNumber().equals(NATNumber.ZERO)){
+				evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
+			} else {
+				abort("Fatal error while reinitializing the VM and evaluator actor", new RuntimeException("Fatal error while reinitializing the VM and evaluator actor"));
+			}
+		} catch (XTypeMismatch e) {
+			abort("Fatal error while reinitializing the VM and evaluator actor", e);
+			
+		} catch (InterpreterException e) {
+			abort("Fatal error while reinitializing the VM and evaluator actor", e);
 		}
 	}
 	

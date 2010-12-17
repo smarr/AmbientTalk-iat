@@ -627,6 +627,20 @@ public class IAT extends EmbeddableAmbientTalk {
 		output.println(result);
 	}
 	
+	public void softReset(){
+		ATAbstractGrammar initCode;
+		try {
+			initCode = parseInitFile();
+			super.reinitialize(initCode);
+			// show info if not quiet version
+			if (!_QUIET_ARG_) {
+				printVersion();
+			}
+		} catch (InterpreterException e) {
+			Logging.Init_LOG.error("error while parsing init file:", e);
+		}
+	}
+	
 	protected void abort(String message, Exception e) {
 		System.out.println(message);
 		System.exit(1);
