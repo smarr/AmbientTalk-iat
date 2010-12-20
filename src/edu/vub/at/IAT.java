@@ -260,6 +260,10 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * @throws InterpreterException
 	 */
 	public IAT(String[] args) throws InterpreterException{
+		this(args, null);
+	}
+	
+	protected IAT(String[] args, IATIO iatio) throws InterpreterException {
 		// I) parse the command-line options
 		parseArguments(args);
 		
@@ -269,8 +273,12 @@ public class IAT extends EmbeddableAmbientTalk {
 		// III) boot sequence: 
 		
 		// set i/o used by AmbientTalk
-		initializeIATIO();
-
+		if (iatio == null) {
+			initializeIATIO();
+		} else {
+			iatio_ = iatio;
+		}
+		
 		//boot the virtual machine and evaluator actor.
 		repl_ = new ReadEvalPrintLoop(iatio_);
 		// use the super method to initialize a virtual machine and evaluator actor 
@@ -296,6 +304,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		// IV) go into the REPL
 		startReadEvalPrintLoop();
 	}
+	
 	public IAT(){
 	}
 	// program arguments
