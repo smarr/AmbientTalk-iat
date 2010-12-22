@@ -92,20 +92,11 @@ public abstract class EmbeddableAmbientTalk {
 	}
 	
 	//-Reset VM into fresh start-up with a reset environment and non-actors.
-	public void reinitialize(ATAbstractGrammar initCodeAst) {
-		ATObject result = virtualMachine_.sync_event_softReset(initCodeAst);
-		try {
-			if (result.asNativeNumber().equals(NATNumber.ZERO)){
-				evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
-			} else {
-				abort("Fatal error while reinitializing the VM and evaluator actor", new RuntimeException("Fatal error while reinitializing the VM and evaluator actor"));
-			}
-		} catch (XTypeMismatch e) {
-			abort("Fatal error while reinitializing the VM and evaluator actor", e);
-			
-		} catch (InterpreterException e) {
-			abort("Fatal error while reinitializing the VM and evaluator actor", e);
-		}
+	public void reinitialize(ATAbstractGrammar initCodeAst) throws Exception {
+		// this is a synchronous event which returns nil if everything went fine or throws an Exception otherwise
+		virtualMachine_.sync_event_softReset(initCodeAst);
+		// reset the evaluator with a fresh actor in the new environment.
+		evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
 	}
 	
 	/**

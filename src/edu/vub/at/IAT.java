@@ -649,17 +649,22 @@ public class IAT extends EmbeddableAmbientTalk {
 		output.println(result);
 	}
 	
-	public void softReset(){
-		ATAbstractGrammar initCode;
+	// return 0 if everything goes fine, 1 otherwise
+	public int softReset(){
 		try {
-			initCode = parseInitFile();
+			ATAbstractGrammar initCode = parseInitFile();
 			super.reinitialize(initCode);
 			// show info if not quiet version
 			if (!_QUIET_ARG_) {
 				printVersion();
 			}
+			return 0;
 		} catch (InterpreterException e) {
 			Logging.Init_LOG.error("error while parsing init file:", e);
+			return 1;
+		} catch (Exception e2) {
+			Logging.Init_LOG.error("fatal error while reinitializing the VM and evaluator actor:", e2);
+			return 1;
 		}
 	}
 	
