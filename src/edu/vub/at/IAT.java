@@ -343,7 +343,7 @@ public class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j'),
 			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a'),
 			new LongOpt("Xdebug", LongOpt.NO_ARGUMENT, null, 'd'),
-			new LongOpt("log", LongOpt.NO_ARGUMENT, null, 'l')
+			new LongOpt("log", LongOpt.REQUIRED_ARGUMENT, null, 'l')
 		};
 		
 		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:a:l:phvqjd:", longopts, true);
