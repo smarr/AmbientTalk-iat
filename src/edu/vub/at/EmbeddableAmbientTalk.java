@@ -27,27 +27,6 @@
  */
 package edu.vub.at;
 
-import edu.vub.at.actors.natives.ELActor;
-import edu.vub.at.actors.natives.ELVirtualMachine;
-import edu.vub.at.actors.natives.SharedActorField;
-import edu.vub.at.eval.Evaluator;
-import edu.vub.at.exceptions.InterpreterException;
-import edu.vub.at.exceptions.XAmbienttalk;
-import edu.vub.at.exceptions.XIOProblem;
-import edu.vub.at.exceptions.XIllegalOperation;
-import edu.vub.at.exceptions.XParseError;
-import edu.vub.at.exceptions.XTypeMismatch;
-import edu.vub.at.objects.ATAbstractGrammar;
-import edu.vub.at.objects.ATObject;
-import edu.vub.at.objects.ATTypeTag;
-import edu.vub.at.objects.coercion.Coercer;
-import edu.vub.at.objects.natives.NATNumber;
-import edu.vub.at.objects.natives.SAFLobby;
-import edu.vub.at.objects.natives.SAFWorkingDirectory;
-import edu.vub.at.parser.NATParser;
-import edu.vub.at.util.logging.Logging;
-import edu.vub.util.Regexp;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -55,6 +34,25 @@ import java.util.LinkedList;
 
 import org.apache.regexp.RE;
 import org.apache.regexp.REProgram;
+
+import edu.vub.at.actors.natives.ELActor;
+import edu.vub.at.actors.natives.ELVirtualMachine;
+import edu.vub.at.actors.natives.SharedActorField;
+import edu.vub.at.eval.Evaluator;
+import edu.vub.at.exceptions.InterpreterException;
+import edu.vub.at.exceptions.XIOProblem;
+import edu.vub.at.exceptions.XIllegalOperation;
+import edu.vub.at.exceptions.XParseError;
+import edu.vub.at.exceptions.XTypeMismatch;
+import edu.vub.at.objects.ATAbstractGrammar;
+import edu.vub.at.objects.ATObject;
+import edu.vub.at.objects.coercion.Coercer;
+import edu.vub.at.objects.natives.NATNumber;
+import edu.vub.at.objects.natives.SAFLobby;
+import edu.vub.at.objects.natives.SAFWorkingDirectory;
+import edu.vub.at.parser.NATParser;
+import edu.vub.at.util.logging.Logging;
+import edu.vub.util.Regexp;
 
 /**
  * The EmbeddableAmbientTalk class provides a general framework to start an AmbientTalk virtual machine from
@@ -275,8 +273,8 @@ public abstract class EmbeddableAmbientTalk {
 	// method which will them properly initialize a virtual machine and an evaluator actor.
 	
 	
-	private static final REProgram pathSeparatorRegExp = Regexp.compile(File.pathSeparator);
-	private static final REProgram equalsRegExp = Regexp.compile("=");
+	protected static final REProgram pathSeparatorRegExp = Regexp.compile(File.pathSeparator);
+	protected static final REProgram equalsRegExp = Regexp.compile("=");
 
 	/**
 	 * AmbientTalk scripts regularly use the <tt>lobby</tt> object (abbreviated as <tt>/</tt>) to load code 
@@ -304,6 +302,9 @@ public abstract class EmbeddableAmbientTalk {
 		// split the object path using ':' (on *nix) or ';' (on windows)
         String[] roots = new RE(pathSeparatorRegExp).split(objectPath);
 		LinkedList namedPaths = new LinkedList();
+		
+		// This code works similar to IAT#computeLogProperties to extract the key=value pairs.
+		// We need to update both codes if changes required.
 		
 		// for each named file path, add an entry to the mapping
 		for (int i = 0; i < roots.length; i++) {

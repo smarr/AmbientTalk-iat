@@ -27,16 +27,16 @@
  */
 package edu.vub.at;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Properties;
+
+import org.apache.regexp.RE;
 
 import edu.vub.at.actors.eventloops.Event;
 import edu.vub.at.actors.eventloops.EventLoop;
@@ -55,6 +55,7 @@ import edu.vub.at.objects.natives.NATText;
 import edu.vub.at.objects.natives.SAFSystem;
 import edu.vub.at.objects.natives.SAFWorkingDirectory;
 import edu.vub.at.parser.NATParser;
+import edu.vub.at.util.logging.Logger;
 import edu.vub.at.util.logging.Logging;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
@@ -316,6 +317,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	public static String _EVAL_ARG_ = null;
 	public static String _NETWORK_NAME_ARG_ = null;
 	public static String _IP_ADDRESS_ARG_ = null;
+	public static String _LOG_LEVEL_ARG_ = null;
 	
 	public static boolean _PRINT_ARG_ = false;
 	public static boolean _HELP_ARG_ = false;
@@ -323,6 +325,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	public static boolean _QUIET_ARG_ = false;
 	public static boolean _NO_JLINE_ARG_ = false;
 	public static boolean _DEBUG_ARG_ = false;
+
 	
 	// IMPORTANT SEQUENTIAL STARTUP ACTIONS
 	
@@ -339,10 +342,11 @@ public class IAT extends EmbeddableAmbientTalk {
 			new LongOpt("quiet", LongOpt.NO_ARGUMENT, null, 'q'),
 			new LongOpt("nojline", LongOpt.NO_ARGUMENT, null, 'j'),
 			new LongOpt("ip", LongOpt.REQUIRED_ARGUMENT, null, 'a'),
-			new LongOpt("Xdebug", LongOpt.NO_ARGUMENT, null, 'd')
+			new LongOpt("Xdebug", LongOpt.NO_ARGUMENT, null, 'd'),
+			new LongOpt("log", LongOpt.NO_ARGUMENT, null, 'l')
 		};
 		
-		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:a:phvqjd:", longopts, true);
+		Getopt g = new Getopt(_EXEC_NAME_, args, "i:o:e:n:a:l:phvqjd:", longopts, true);
 
 		int c;
 		while ((c = g.getopt()) != -1) {
@@ -358,6 +362,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		          case 'j': _NO_JLINE_ARG_ = true;break;
 		          case 'a': _IP_ADDRESS_ARG_ = g.getOptarg(); break;
 		          case 'd': _DEBUG_ARG_ = true;break;
+		          case 'l': _LOG_LEVEL_ARG_ = g.getOptarg(); break;
 		          case '?':
 		        	   // getopt() already printed an error
 		        	   System.out.println("There were illegal options, quittING.");
@@ -376,6 +381,8 @@ public class IAT extends EmbeddableAmbientTalk {
 			_ARGUMENTS_ARG_[i] = args[i + firstNonOptionArgumentIdx];
 		}
 	}
+
+	
 	
 	private static void processInformativeArguments() {
 		// first process the informative arguments, -h, -v
@@ -393,6 +400,12 @@ public class IAT extends EmbeddableAmbientTalk {
 		if (!_QUIET_ARG_) {
 			printVersion();
 		}
+		
+		if (_LOG_LEVEL_ARG_ != null){
+			//initialize the logging framework
+			computeLogProperties();
+		}
+		
 	}
 	
 	static {
@@ -706,5 +719,65 @@ public class IAT extends EmbeddableAmbientTalk {
 		int open = input.replaceAll("[^(\\[{]","").length();
 		int close = input.replaceAll("[^)\\]}]","").length();
 		return open - close;
+	}
+	
+	/**
+	 * Helper function which is able to transform a textual description of the log properties, of the form:
+	 * <pre>
+	 * key=value:key2=value2:...
+	 * 
+	 * where key = the name of a logger and value = a priority level (e.g. WARN, DEBUG, ...)
+	 * 
+	 * creates a listing:
+	 * key -> value
+	 * key -> value2
+	 * ...
+	 * 
+	 * and uses the listing to initialize the logging support.
+	 * </pre>
+	 * 
+	 * @see EmbeddableAmbientTalk#computeObjectPath(String) which works in a similar way.
+	 * @see EmbeddableAmbientTalk#abort(String, Exception) which is called to report exceptions occurring while
+	 * transforming the object root.
+	 * 
+	 */
+	private static void computeLogProperties() {
+		
+		// force the loading of the Logging class so that the default logs are initialized before the changes.
+		Logging var = new Logging();
+
+		// This code works similar to EmbeddabeAmbientTalk.computeObjectPath to extract the key=value pairs.
+		// We need to update both codes if changes required.
+		String[] logProps = new RE(pathSeparatorRegExp).split(_LOG_LEVEL_ARG_);
+		for (int i = 0; i < logProps.length; i++) {
+			if (logProps[i].length()==0) {
+				continue; // skip empty entries
+			}
+			// extract key = value components
+			String[] pair = new RE(equalsRegExp).split(logProps[i]);
+			// Backport from JDK 1.4 to 1.3
+			// String[] pair = roots[i].split("=");
+			if (pair.length != 2) {
+				System.out.println("Error: invalid KEY=VALUE entry on log properties: " + logProps[i]);
+				System.exit(1);
+			}
+
+			String key = pair[0];
+			String value = pair[1];
+
+			if (key.equals("all")) {
+				// set the same value for all instances
+				Object[] logs = Logger.getAllInstances();
+				for (int j = 0; j < logs.length; j++) {
+					Logger log = (Logger) logs[j];
+					log.setPriority(value);
+				}
+			} else{
+				// set only for one instance with name = value.
+				Logger.getInstance(key).setPriority(value);
+			}
+
+		}
+
 	}
 }
