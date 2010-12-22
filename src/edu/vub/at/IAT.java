@@ -384,7 +384,7 @@ public class IAT extends EmbeddableAmbientTalk {
 
 	
 	
-	private static void processInformativeArguments() {
+	protected static void processInformativeArguments() {
 		// first process the informative arguments, -h, -v
 		if (_VERSION_ARG_) {
 		  printVersion();
