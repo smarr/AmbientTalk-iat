@@ -3,7 +3,7 @@
 # extracts the path where the 'iat' shell script is located
 CURRENTWD=`dirname $0`
 # automatically extract all .jar files in all subdirectories
-JARS=`find $CURRENTWD -name '*.jar'`
+JARS=`find -L $CURRENTWD -name '*.jar'`
 JARPATH=""
 DEFAULT_OBJPATH=""
 
