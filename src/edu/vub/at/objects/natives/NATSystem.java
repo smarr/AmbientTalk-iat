@@ -82,7 +82,11 @@ public final class NATSystem extends NATByCopy {
 	}
 	
 	public NATText impl_asCode(TempFieldGenerator objectMap) throws InterpreterException {
-		return NATText.atValue("system");
+		if (objectMap.contains(this)) {
+			return objectMap.getName(this);
+		}
+		NATText name = objectMap.put(this, NATText.atValue("system"));
+		return name;
 	}
 	
 	/**
