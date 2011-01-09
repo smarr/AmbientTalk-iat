@@ -15,5 +15,5 @@
 @rem - invoke the main IAT class
 @rem - pass any parameters to this script to IAT
 
-@java -DAT_HOME=%AT_HOME% -DAT_INIT=%AT_HOME%\atlib\at\init\init.at -DAT_OBJECTPATH=%AT_OBJECTPATH% -DAT_LIBPATH=%DEFAULT_OBJPATH% -classpath %AT_CLASSPATH% edu.vub.at.IAT %1 %2 %3 %4 %5 %6 %7 %8 %9
+@java -DAT_HOME="%AT_HOME%" -DAT_INIT="%AT_HOME%\atlib\at\init\init.at" -DAT_OBJECTPATH=%AT_OBJECTPATH% -DAT_LIBPATH=%DEFAULT_OBJPATH% -classpath %AT_CLASSPATH% edu.vub.at.IAT %*
 @popd
