@@ -32,9 +32,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.LinkedList;
 
-import org.apache.regexp.RE;
-import org.apache.regexp.REProgram;
-
 import edu.vub.at.actors.natives.ELActor;
 import edu.vub.at.actors.natives.ELVirtualMachine;
 import edu.vub.at.actors.natives.SharedActorField;
@@ -264,8 +261,8 @@ public abstract class EmbeddableAmbientTalk {
 	// method which will them properly initialize a virtual machine and an evaluator actor.
 	
 	
-	protected static final REProgram pathSeparatorRegExp = Regexp.compile(File.pathSeparator);
-	protected static final REProgram equalsRegExp = Regexp.compile("=");
+	protected static final String pathSeparatorRegExp = File.pathSeparator;
+	protected static final String equalsRegExp = "=";
 
 	/**
 	 * AmbientTalk scripts regularly use the <tt>lobby</tt> object (abbreviated as <tt>/</tt>) to load code 
@@ -291,7 +288,7 @@ public abstract class EmbeddableAmbientTalk {
 	 */
 	public SharedActorField computeObjectPath(String objectPath) {
 		// split the object path using ':' (on *nix) or ';' (on windows)
-        String[] roots = new RE(pathSeparatorRegExp).split(objectPath);
+		String[] roots = objectPath.split(pathSeparatorRegExp);
 		LinkedList namedPaths = new LinkedList();
 		
 		// This code works similar to IAT#computeLogProperties to extract the key=value pairs.
@@ -304,9 +301,7 @@ public abstract class EmbeddableAmbientTalk {
 			}
 			
 			// extract name = path components
-            String[] pair = new RE(equalsRegExp).split(roots[i]);
-            // Backport from JDK 1.4 to 1.3
-			// String[] pair = roots[i].split("=");
+            String[] pair = roots[i].split(equalsRegExp);
 			if (pair.length != 2) {
 				abort("Error: invalid name=path entry on object path: " + roots[i], null);
 			}

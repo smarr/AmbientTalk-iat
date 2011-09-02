@@ -36,8 +36,6 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Properties;
 
-import org.apache.regexp.RE;
-
 import edu.vub.at.actors.eventloops.Event;
 import edu.vub.at.actors.eventloops.EventLoop;
 import edu.vub.at.actors.natives.ELActor;
@@ -753,15 +751,13 @@ public class IAT extends EmbeddableAmbientTalk {
 
 		// This code works similar to EmbeddabeAmbientTalk.computeObjectPath to extract the key=value pairs.
 		// We need to update both codes if changes required.
-		String[] logProps = new RE(pathSeparatorRegExp).split(_LOG_LEVEL_ARG_);
+		String[] logProps = _LOG_LEVEL_ARG_.split(pathSeparatorRegExp);
 		for (int i = 0; i < logProps.length; i++) {
 			if (logProps[i].length()==0) {
 				continue; // skip empty entries
 			}
 			// extract key = value components
-			String[] pair = new RE(equalsRegExp).split(logProps[i]);
-			// Backport from JDK 1.4 to 1.3
-			// String[] pair = roots[i].split("=");
+			String[] pair = logProps[i].split(equalsRegExp);
 			if (pair.length != 2) {
 				System.out.println("Error: invalid KEY=VALUE entry on log properties: " + logProps[i]);
 				System.exit(1);
