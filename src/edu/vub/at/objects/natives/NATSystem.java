@@ -119,22 +119,18 @@ public final class NATSystem extends NATByCopy {
 	 * @throws InterpreterException if obj cannot be converted into a native text value
 	 */
 	public ATNil base_print(ATObject[] objs) throws InterpreterException {
-		try {
-			for (int i = 0; i < objs.length; i++) {
-				ATObject obj = objs[i];
-				String toPrint = null;
-				if (obj.isNativeText()) {
-					toPrint = obj.asNativeText().javaValue;
-				}else{
-					toPrint = obj.meta_print().javaValue;
-				}
-				shell_.getIatio().print(toPrint);
-
+		for (int i = 0; i < objs.length; i++) {
+			ATObject obj = objs[i];
+			String toPrint = null;
+			if (obj.isNativeText()) {
+				toPrint = obj.asNativeText().javaValue;
+			}else{
+				toPrint = obj.meta_print().javaValue;
 			}
-			return Evaluator.getNil();
-		} catch (IOException e) {
-			throw new XIOProblem(e);
+			shell_.getIatio().print(toPrint);
+
 		}
+		return Evaluator.getNil();
 	}
 	
 	/**
@@ -142,12 +138,8 @@ public final class NATSystem extends NATByCopy {
 	 */
 	public ATNil base_println(ATObject[] objs) throws InterpreterException {
 		base_print(objs);
-		try {
-			shell_.getIatio().println();
-			return Evaluator.getNil();
-		} catch (IOException e) {
-			throw new XIOProblem(e);
-		}
+		shell_.getIatio().println();
+		return Evaluator.getNil();
 	}
 	
 	/**

@@ -61,40 +61,53 @@ public final class IATIOJline extends IATIO{
 	
 	// output
 	
-	public void print(String txt) throws IOException {
-		console_.printString(txt); console_.flushConsole();
+	public void print(String txt) {
+		try {
+			console_.printString(txt); 
+			console_.flushConsole();
+		} catch(IOException e) {
+			Logging.VirtualMachine_LOG.fatal("Failed to read with jline I/O", e);
+		}
 	}
 
-	public void print(int nbr) throws IOException {
+	public void print(int nbr) {
 		print(Integer.toString(nbr));
 	}
 	
-	public void print(double frc) throws IOException {
+	public void print(double frc) {
 		print(Double.toString(frc));
 	}
 	
-	public void print(boolean bool) throws IOException {
+	public void print(boolean bool) {
 		print(Boolean.toString(bool));
 	}
 	
-	public void println(String txt) throws IOException {
-		print(txt); console_.printNewline();
+	public void println(String txt) {
+		print(txt); 
+		println();
 	}
 
-	public void println(int nbr) throws IOException {
-		print(nbr); console_.printNewline();
+	public void println(int nbr) {
+		print(nbr); 
+		println();
 	}
 	
-	public void println(double frc) throws IOException {
-		print(frc); console_.printNewline();
+	public void println(double frc) {
+		print(frc); 
+		println();
 	}
 	
-	public void println(boolean bool) throws IOException {
-		print(bool); console_.printNewline();
+	public void println(boolean bool) {
+		print(bool); 
+		println();
 	}
 	
-	public void println() throws IOException {
-		console_.printNewline();
+	public void println(){
+		try {
+			console_.printNewline();
+		} catch (IOException e) {
+			Logging.VirtualMachine_LOG.fatal("Failed to read with jline I/O", e);
+		}
 	}
 	
 	// input

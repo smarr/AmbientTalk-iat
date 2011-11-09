@@ -42,28 +42,29 @@ public abstract class IATIO {
 	
 	// output
 	
-	public abstract void print(String txt) throws IOException;
+	public abstract void print(String txt);
 
-	public abstract void print(int nbr) throws IOException ;
+	public abstract void print(int nbr);
 	
-	public abstract void print(double frc) throws IOException;
+	public abstract void print(double frc);
 	
-	public abstract void print(boolean bool) throws IOException;
+	public abstract void print(boolean bool);
 	
-	public abstract void println(String txt) throws IOException;
+	public abstract void println(String txt);
 
-	public abstract void println(int nbr) throws IOException;
+	public abstract void println(int nbr);
 	
-	public abstract void println(double frc) throws IOException;
+	public abstract void println(double frc);
 	
-	public abstract void println(boolean bool) throws IOException;
+	public abstract void println(boolean bool);
 	
-	public abstract void println() throws IOException;
+	public abstract void println();
 	
 	// input
 
 	/**
 	 * @return the next line on the input stream or null if EOF has been reached
+	 * @throws IOException so that it is captured by AT code to trigger the failure block of readNextLine: { |line| ... } catch: { |ioException| ... }.
 	 */
 	public abstract String readln(String prompt) throws IOException;
 	public abstract String readln() throws IOException;

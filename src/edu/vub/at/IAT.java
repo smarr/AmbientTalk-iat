@@ -140,7 +140,7 @@ public class IAT extends EmbeddableAmbientTalk {
 					} else {
 						if (countBalanced(input) <= 0) {
 							// no outstanding opening braces, input is just one line
-							evalAndPrint(input, System.out);
+							evalAndPrint(input);
 						} else {
 							// there are outstanding opening braces, emit continuation lines
 							StringBuffer multilineInput = new StringBuffer(input).append("\n");
@@ -155,12 +155,13 @@ public class IAT extends EmbeddableAmbientTalk {
 								// or until the user explicitly inputs an empty line
 							} while (diff != 0 && !input.isEmpty());
 							// finally, evaluate the multi-line input
-							evalAndPrint(multilineInput.toString(), System.out);
+							evalAndPrint(multilineInput.toString());
 						}
 					}
 				} catch (IOException e) {
 					abort("Error reading input: "+e.getMessage(), e);
-				}	
+				}
+
 			} else {
 				// otherwise process incoming event
 				super.execute();
@@ -170,7 +171,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		public void event_readLine(final ELActor owner, final ATClosure success, final ATClosure failure) {
 		  receive(new Event() {
 			public void process(Object eventloop) {
-					try {
+				try{
 						 // blocking input
 						String line = null;
 						line = iatio_.readln(IAT._READ_PROMPT_);
@@ -186,7 +187,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		  });
 	    }
 		
-		private String readFromConsole() throws IOException {
+		private String readFromConsole() throws IOException{
 			if (!IAT._QUIET_ARG_) {
 				return iatio_.readln(_INPUT_PROMPT_);
 			} else {
@@ -201,7 +202,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		 * '.   ', where '.' is the contination prompt and
 		 * the number of spaces printed is specified by the diff parameter
 		 */
-		private String readContinuationLine(int diff) throws IOException {
+		private String readContinuationLine(int diff) throws IOException{
 			if (!IAT._QUIET_ARG_ && !IAT._NO_JLINE_ARG_) {
 				char[] spaces = new char[diff];
 				Arrays.fill(spaces, ' ');
@@ -219,10 +220,10 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * Performs the main boot sequence of iat and the AmbientTalk VM.
 	 * Startup sequence:
 	 *  I) parse command-line arguments, extract properties
-	 * II) check for simple -help or -version arguments
+	 *  II) initialize the i/o (jline or default depending on -nojline flag).
+	 * III) check for simple -help or -version arguments
 	 * 
-	 * III) Boot sequence:
-	 * 0) initialize the i/o (jline or default depending on -nojline flag).
+	 * IV) Boot sequence:
 	 * 1) initialize the lobby using the object path (-o or default)
 	 * 2) add system object to the global lexical scope
 	 * 3) evaluate init file (-i or default) in context of the global scope
@@ -247,7 +248,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * point to a newly create actor serving as iat's global evaluation context 
 	 * and iatio_ will point to the i/o output used by iat and interpreter.
 	 * 
-	 * IV) enter REPL:
+	 * V) enter REPL:
 	 *       1) print input prompt (unless -q)
 	 *       2) read input
 	 *       3) parse input
@@ -266,18 +267,18 @@ public class IAT extends EmbeddableAmbientTalk {
 		// I) parse the command-line options
 		parseArguments(args);
 		
-		// II) handle -help or -version arguments
-		processInformativeArguments();
-		
-		// III) boot sequence: 
-		
-		// set i/o used by AmbientTalk
+		// II) initialize i/o used by AmbientTalk before any task that may use the i/o
 		if (iatio == null) {
 			initializeIATIO();
 		} else {
 			iatio_ = iatio;
 		}
 		
+		// III) handle -help or -version arguments
+		processInformativeArguments();
+		
+		// IV) boot sequence: 
+
 		//boot the virtual machine and evaluator actor.
 		repl_ = new ReadEvalPrintLoop(iatio_);
 		// use the super method to initialize a virtual machine and evaluator actor 
@@ -300,7 +301,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		if (_PRINT_ARG_)
 			System.exit(0);
 
-		// IV) go into the REPL
+		// V) go into the REPL
 		startReadEvalPrintLoop();
 	}
 	
@@ -363,8 +364,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		          case 'l': _LOG_LEVEL_ARG_ = g.getOptarg(); break;
 		          case '?':
 		        	   // getopt() already printed an error
-		        	   System.out.println("There were illegal options, quittING.");
-		        	   System.exit(1);
+		        	   throw new Error("There were illegal options, quittING.");
 		          default:
 		            System.err.print("getopt() returned " + c + "\n");
 		       }
@@ -382,7 +382,7 @@ public class IAT extends EmbeddableAmbientTalk {
 
 	
 	
-	protected static void processInformativeArguments() {
+	protected void processInformativeArguments() {
 		// first process the informative arguments, -h, -v
 		if (_VERSION_ARG_) {
 		  printVersion();
@@ -531,9 +531,9 @@ public class IAT extends EmbeddableAmbientTalk {
 		if (_EVAL_ARG_ != null) {
 			// the executed script is provided via the command line
 			scriptSource_ = "commandline";
-			
+
 			// evaluate the -e code and disregard the main file
-			evalAndPrint(_EVAL_ARG_, System.out);			
+			evalAndPrint(_EVAL_ARG_);			
 		} else if (_FILE_ARG_ != null) {
 			loadCodeFromFile(_FILE_ARG_);
 		}
@@ -543,16 +543,16 @@ public class IAT extends EmbeddableAmbientTalk {
 		// evaluate the main file
 		File source = new File(sourcePath.trim());
 		if (!source.exists()) {
-			System.out.println("File does not exist: " + source.getAbsolutePath());
+			abort("File does not exist: " + source.getAbsolutePath(), null);
 		} else {
 			try {
 				// the executed script is contained in the provided file
 				scriptSource_ = source.getCanonicalPath();
 				
 				String sourceCode = Evaluator.loadContentOfFile(source);
-				evalAndPrint(sourceCode, System.out);	
+				evalAndPrint(sourceCode);	
 			} catch (IOException e) {
-				abort("Error reading file: "+e.getMessage(), null);
+				abort("Error reading file or printing evaluation result: "+e.getMessage(), e);
 			}
 		}
 	}
@@ -594,57 +594,54 @@ public class IAT extends EmbeddableAmbientTalk {
 	// AUXILIARY FUNCTIONS
 	
 	protected ATObject handleParseError(String script, XParseError e) {
-		System.out.println("parse error in "+e.getMessage());
+		iatio_.println("parse error in "+e.getMessage());
 		// try to mark the parse error on the console if that info is available
 		InputStream code = e.getErroneousCode();
-		
+
 		if (code != null) {
-			try {
-				int lineNo = e.getLine();
-				int colNo = e.getColumn();
-				
-				BufferedReader reader = new BufferedReader(new InputStreamReader(code));
-				int lineCount = 0;
-				String line = "";
-				
-				// first, find the appropriate line in the source code
-				while ((lineCount++ < lineNo) && (line != null)) {
+
+			int lineNo = e.getLine();
+			int colNo = e.getColumn();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(code));
+			int lineCount = 0;
+			String line = "";
+
+			// first, find the appropriate line in the source code
+			while ((lineCount++ < lineNo) && (line != null)) {
+				try {
 					line = reader.readLine();
+				} catch (IOException ioe) {
+					// could not read from the source string, ignore further parse error handling
 				}
-				// was the correct line found?
-				if (line != null) {
-					// print the line and mark the column position with a ^
-					System.out.println(line);
-					// print col-1 whitespaces
-					while (colNo-- > 1) {
-						System.out.print(" ");
-					}
-					System.out.println("^");
-				}
-			} catch (IOException ioe) {
-				// could not read from the source string, ignore further parse error handling
 			}
+			// was the correct line found?
+			if (line != null) {
+				// print the line and mark the column position with a ^
+				iatio_.println(line);
+				// print col-1 whitespaces
+				while (colNo-- > 1) {
+					iatio_.print(" ");
+				}
+				iatio_.println("^");
+			}
+
 		}
-		
 		return Evaluator.getNil();
 	}
 	
 	protected ATObject handleATException(String script, InterpreterException e) {
-		try {
-			iatio_.println(e.getMessage());
-			e.printAmbientTalkStackTrace(System.out);
-		} catch(IOException e2) {
-			Logging.Init_LOG.error("error while printing exception stack trace:", e2);
-		}
+		iatio_.println(e.getMessage());
+		e.printAmbientTalkStackTrace(System.out);
 		return Evaluator.getNil();
 	}
 	
-	public void evalAndPrint(String script, PrintStream output) {
+	public void evalAndPrint(String script) {
 		String result = parseSendAndPrint(script);
 		if (!_QUIET_ARG_) {
-			output.print(_OUTPUT_PROMPT_);
+			iatio_.print(_OUTPUT_PROMPT_);
 		}
-		output.println(result);
+		iatio_.println(result);
 	}
 	
 	// return 0 if everything goes fine, 1 otherwise
@@ -696,10 +693,10 @@ public class IAT extends EmbeddableAmbientTalk {
 	
 	public IATIO getIatio(){return iatio_;}
 		
-	private static void printVersion() {
+	private void printVersion() {
 		String progname = _IAT_PROPS_.getProperty("name", "unknown program name");
 		String version = _IAT_PROPS_.getProperty("version","unknown version");
-		System.out.println(progname + ", version " + version);
+		iatio_.println(progname + ", version " + version);
 	}
 	
 	private void processShellCommand(String command) {

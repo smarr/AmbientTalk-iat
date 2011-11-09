@@ -47,39 +47,39 @@ public final class IATIOStandard extends IATIO {
 	
 	// output
 	
-	public void print(String txt) throws IOException {
+	public void print(String txt) {
 		 output_.print(txt); output_.flush();
 	}
 
-	public void print(int nbr) throws IOException {
+	public void print(int nbr){
 		 output_.print(nbr); output_.flush();
 	}
 	
-	public void print(double frc) throws IOException {
+	public void print(double frc){
 		 output_.print(frc); output_.flush();
 	}
 	
-	public void print(boolean bool) throws IOException {
+	public void print(boolean bool){
 		 output_.print(bool); output_.flush();
 	}
 	
-	public void println(String txt) throws IOException {
+	public void println(String txt) {
 		 output_.println(txt);
 	}
 
-	public void println(int nbr) throws IOException {
+	public void println(int nbr){
 		output_.println(nbr);
 	}
 	
-	public void println(double frc) throws IOException {
+	public void println(double frc) {
 		output_.println(frc);
 	}
 	
-	public void println(boolean bool) throws IOException {;
+	public void println(boolean bool) {
 		 output_.println(bool);
 	}
 	
-	public void println() throws IOException {
+	public void println() {
 	    output_.println();
 	}
 	
