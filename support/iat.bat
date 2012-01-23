@@ -5,7 +5,7 @@
 
 @set AT_HOME=%CD%
 
-@set AT_CLASSPATH="%AT_HOME%;%CLASSPATH%;%AT_HOME%\ambienttalk2.jar;%AT_HOME%\jlib\antlr.jar;%AT_HOME%\jlib\java-getopt-1.0.13.jar;%AT_HOME%\jlib\jakarta-regexp-1.5.jar;%AT_HOME%\jlib\jline-0.9.94.jar"
+@set AT_CLASSPATH="%AT_HOME%;%CLASSPATH%;%AT_HOME%\ambienttalk2.jar;%AT_HOME%\jlib\antlr.jar;%AT_HOME%\jlib\java-getopt-1.0.13.jar;%AT_HOME%\jlib\jline-0.9.94.jar"
 
 @set DEFAULT_OBJPATH="at=%AT_HOME%\atlib\at;applications=%AT_HOME%\atlib\applications;bridges=%AT_HOME%\atlib\bridges;frameworks=%AT_HOME%\atlib\frameworks;demo=%AT_HOME%\atlib\demo;test=%AT_HOME%\atlib\test"
 
