@@ -304,9 +304,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		// V) go into the REPL
 		startReadEvalPrintLoop();
 	}
-	
-	public IAT(){
-	}
+
 	// program arguments
 	public static String _FILE_ARG_ = null;
 	public static String[] _ARGUMENTS_ARG_ = null;
@@ -483,7 +481,7 @@ public class IAT extends EmbeddableAmbientTalk {
 				String initCode = Evaluator.loadContentOfFile(initFile);
 				if (_DEBUG_ARG_) {
 					 String initDebugCode = getInitDebuggerCode(initFile);
-					 return NATParser.parse(initFile.getName(), initDebugCode + initCode);
+					 return NATParser.parse(initFile.getName(),  initCode + initDebugCode);
 				} else{
 				  return NATParser.parse(initFile.getName(), initCode);
 				}
@@ -498,7 +496,7 @@ public class IAT extends EmbeddableAmbientTalk {
 						String initCode = Evaluator.loadContentOfFile(initFile);
 						if (_DEBUG_ARG_) {
 							 String initDebugCode = getInitDebuggerCode(initFile);
-							 return NATParser.parse(initFile.getName(), initDebugCode + initCode);
+							 return NATParser.parse(initFile.getName(), initCode + initDebugCode );
 						} else{
 							//new BufferedInputStream(new FileInputStream(initFile));
 						  return NATParser.parse(initFile.getName(), initCode);	
@@ -741,7 +739,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	 * transforming the object root.
 	 * 
 	 */
-	private static void computeLogProperties() {
+	protected static void computeLogProperties() {
 		
 		// force the loading of the Logging class so that the default logs are initialized before the changes.
 		Logging var = new Logging();
