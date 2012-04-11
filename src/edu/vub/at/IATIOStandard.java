@@ -31,18 +31,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 
 public final class IATIOStandard extends IATIO {
 
 	public static final IATIOStandard _INSTANCE_ = new IATIOStandard(System.in, System.out);
 	
 	private final BufferedReader input_;
-	private final PrintStream output_;
+	private final PrintWriter output_;
 	
-	private IATIOStandard(InputStream in, PrintStream out) {
+	private IATIOStandard(InputStream in, OutputStream out) {
 		input_ = new BufferedReader(new InputStreamReader(in));
-		output_ = out;
+		output_ = new PrintWriter(System.out, true);
 	}
 	
 	// output
@@ -90,7 +91,7 @@ public final class IATIOStandard extends IATIO {
 	 */
 	public String readln(String prompt) throws IOException {
 		//providing equivalent functionality to jline (e.g. console_.readLine(prompt);)
-		output_.print(prompt);
+		output_.print(prompt); output_.flush();
 		return readln();
 	}
 	
