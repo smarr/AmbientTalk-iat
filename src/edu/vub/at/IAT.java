@@ -458,7 +458,7 @@ public class IAT extends EmbeddableAmbientTalk {
 			String initFilePath = initFile.getAbsolutePath();
 			String initDebugPath = initFilePath.replaceFirst("init.at", "initDebugger.at");
 			File initDebugFile = new File (initDebugPath);
-			if (initDebugFile == null) {
+			if (!initDebugFile.exists()) {
 				abort("Cannot load initDebugger.at: " + initDebugPath, null);
 			} else { 
 				return Evaluator.loadContentOfFile(initDebugFile);		
