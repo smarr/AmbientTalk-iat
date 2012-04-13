@@ -478,12 +478,12 @@ public class IAT extends EmbeddableAmbientTalk {
 				File initFile = new File(_INIT_ARG_);
 				if (!initFile.exists()) {
 					abort("Unknown init file: "+_INIT_ARG_, null);
-				}
-				String initCode = Evaluator.loadContentOfFile(initFile);
+				}			
 				if (_DEBUG_ARG_) {
 					 String initDebugCode = getInitDebuggerCode(initFile);
-					 return NATParser.parse(initFile.getName(),  initCode + initDebugCode);
+					 return NATParser.parse(initFile.getName(), initDebugCode);
 				} else{
+					String initCode = Evaluator.loadContentOfFile(initFile);
 				  return NATParser.parse(initFile.getName(), initCode);
 				}
 			} else {
@@ -493,17 +493,16 @@ public class IAT extends EmbeddableAmbientTalk {
 					abort("Cannot load init.at: none specified and no AT_INIT environment variable set", null);
 				} else {
 					File initFile = new File(defaultInit);
-					if (initFile.exists()) {
-						String initCode = Evaluator.loadContentOfFile(initFile);
-						if (_DEBUG_ARG_) {
-							 String initDebugCode = getInitDebuggerCode(initFile);
-							 return NATParser.parse(initFile.getName(), initCode + initDebugCode );
-						} else{
-							//new BufferedInputStream(new FileInputStream(initFile));
-						  return NATParser.parse(initFile.getName(), initCode);	
-						}
-					} else {
+					if (!initFile.exists()) {
 						abort("Cannot load init.at from default location " + initFile.getPath(), null);
+					}					
+					if (_DEBUG_ARG_) {
+						String initDebugCode = getInitDebuggerCode(initFile);
+						return NATParser.parse(initFile.getName(), initDebugCode );
+					} else{
+						String initCode = Evaluator.loadContentOfFile(initFile);
+						//new BufferedInputStream(new FileInputStream(initFile));
+						return NATParser.parse(initFile.getName(), initCode);	
 					}
 				}
 			}
