@@ -94,10 +94,13 @@ import gnu.getopt.LongOpt;
 public class IAT extends EmbeddableAmbientTalk {
 
 	protected static final String _EXEC_NAME_ = "iat";
+	protected static final String _INIT_FILE_NAME_ = "init.at";
+	protected static final String _INITDEBUGGER_FILE_NAME_ = "initDebugger.at";
 	private static final String _ENV_AT_OBJECTPATH_ = "AT_OBJECTPATH";
 	protected static final String _ENV_AT_INIT_ = "AT_INIT";
 	private static final String _ENV_AT_LIBPATH_ = "AT_LIBPATH";
-		
+	private static final String _ENV_AT_CURNS_ ="AT_CURNS";
+	
 	protected static final Properties _IAT_PROPS_ = new Properties();
 	private static String _INPUT_PROMPT_;
 	protected static String _OUTPUT_PROMPT_;
@@ -456,15 +459,15 @@ public class IAT extends EmbeddableAmbientTalk {
 		try{
 			// initDebugger.at adds the behaviour slot to the default actor mirror so that actors can be debuggeable
 			String initFilePath = initFile.getAbsolutePath();
-			String initDebugPath = initFilePath.replaceFirst("init.at", "initDebugger.at");
+			String initDebugPath = initFilePath.replaceFirst(_INIT_FILE_NAME_, _INITDEBUGGER_FILE_NAME_);
 			File initDebugFile = new File (initDebugPath);
 			if (!initDebugFile.exists()) {
-				abort("Cannot load initDebugger.at: " + initDebugPath, null);
+				abort("Cannot load " + _INITDEBUGGER_FILE_NAME_ + " : " + initDebugPath, null);
 			} else { 
 				return Evaluator.loadContentOfFile(initDebugFile);		
 			}
 		} catch (IOException e) {
-			abort("Error reading the initDebugger file: "+e.getMessage(), e);
+			abort("Error reading the " + _INITDEBUGGER_FILE_NAME_ + ": "+e.getMessage(), e);
 		}
 
 		return null;
@@ -490,11 +493,11 @@ public class IAT extends EmbeddableAmbientTalk {
 				// use the default init file under $AT_INIT provided with the distribution
 				String defaultInit = System.getProperty(_ENV_AT_INIT_);
 				if (defaultInit == null) {
-					abort("Cannot load init.at: none specified and no AT_INIT environment variable set", null);
+					abort("Cannot load " + _INIT_FILE_NAME_+ ": none specified and no AT_INIT environment variable set", null);
 				} else {
 					File initFile = new File(defaultInit);
 					if (!initFile.exists()) {
-						abort("Cannot load init.at from default location " + initFile.getPath(), null);
+						abort("Cannot load " + _INIT_FILE_NAME_+ " from default location " + initFile.getPath(), null);
 					}					
 					if (_DEBUG_ARG_) {
 						String initDebugCode = getInitDebuggerCode(initFile);
@@ -679,20 +682,31 @@ public class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	public SharedActorField computeWorkingDirectory() {
-		if (_FILE_ARG_ != null) {
-			// define ~ in terms of the location of the main file
-
-			File main = new File(_FILE_ARG_);
+		String defaultWorkingDirectoryPath = System.getProperty(_ENV_AT_CURNS_);
+		String pathName = null;
+		if (defaultWorkingDirectoryPath != null) {
+			if (defaultWorkingDirectoryPath.isEmpty()) {
+				pathName = null;
+			}else {
+				// define ~ in terms of the _ENV_AT_CURNS_ if exists
+				pathName = defaultWorkingDirectoryPath;
+			}
+		} else{
+			if (_FILE_ARG_ != null) {
+				// define ~ in terms of the location of the main file
+				pathName = _FILE_ARG_;
+			} 
+		}
+		if (pathName != null) {
+			File main = new File(pathName);
 			if (main.exists()) {
 				// if main file is valid ~ is its enclosing directory
-				
 				File workingDirectory = main.getParentFile();
 				if(workingDirectory != null && workingDirectory.exists()) {
 					return new SAFWorkingDirectory(workingDirectory);
 				}
-			}
-		} 
-		
+			}	
+		}
 		// In all other cases...
 		return super.computeWorkingDirectory();
 	}
