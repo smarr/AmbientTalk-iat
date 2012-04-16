@@ -126,4 +126,8 @@ public final class IATIOJline extends IATIO{
 		return console_.readLine(""); //new Character((char)0));
 	}
 
+	public PrintStream getOutput() {
+		return System.out;
+	}
+
 }

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 
 public final class IATIOStandard extends IATIO {
@@ -116,6 +117,12 @@ public final class IATIOStandard extends IATIO {
 		} else{
 		    return null;
 		}
+	}
+
+	@Override
+	public PrintStream getOutput() {
+		// TODO Auto-generated method stub
+		return System.out;
 	}
 
 }

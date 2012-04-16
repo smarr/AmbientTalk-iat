@@ -79,7 +79,7 @@ public abstract class EmbeddableAmbientTalk {
 	public void initialize(ATAbstractGrammar initCodeAst, SharedActorField[] fields, String networkName, String ipAddress) {
 		try {
 			// initialize the virtual machine using object path, init file and network name
-			virtualMachine_ = new ELVirtualMachine(initCodeAst, fields, networkName, ipAddress);
+			virtualMachine_ = new ELVirtualMachine(initCodeAst, fields, networkName, ipAddress, this.getIatio().getOutput());
 						
 			// create a new actor on this vm with the appropriate main body.
 			evaluator_ = virtualMachine_.createEmptyActor().getFarHost();
@@ -349,4 +349,6 @@ public abstract class EmbeddableAmbientTalk {
 	 * offering (transformed) command-line arguments to the AmbientTalk interpreter.
 	 */
 	public abstract SharedActorField computeSystemObject(Object[] arguments);
+	
+	protected abstract IATIO getIatio();
 }

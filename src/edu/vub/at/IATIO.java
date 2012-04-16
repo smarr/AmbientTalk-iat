@@ -29,6 +29,7 @@
 package edu.vub.at;
 
 import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * The class IATIOJline provides the core input/output functionality of IAT.
@@ -68,5 +69,8 @@ public abstract class IATIO {
 	 */
 	public abstract String readln(String prompt) throws IOException;
 	public abstract String readln() throws IOException;
+	
+	public abstract PrintStream getOutput();
+	
 	
 }

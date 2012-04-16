@@ -393,7 +393,7 @@ public class IAT extends EmbeddableAmbientTalk {
 		
 		if (_HELP_ARG_) {
 		  printVersion();
-		  System.out.println(_IAT_PROPS_.getProperty("help", "no help available"));
+		  iatio_.println(_IAT_PROPS_.getProperty("help", "no help available"));
 		  System.exit(0);
 		}
 		
@@ -673,7 +673,7 @@ public class IAT extends EmbeddableAmbientTalk {
 	}
 	
 	protected void abort(String message, Exception e) {
-		System.out.println(message);
+		iatio_.println(message);
 		System.exit(1);
 	}
 	
@@ -724,10 +724,10 @@ public class IAT extends EmbeddableAmbientTalk {
 			System.exit(0);
 		} else if (command.startsWith("l ") || command.startsWith("load ")) {
 			String fileName = command.substring(command.indexOf(" ")+1);
-			System.out.println("Loading " + fileName);
+			iatio_.println("Loading " + fileName);
 			loadCodeFromFile(fileName);
 		} else {
-			System.out.println("Unknown command: " + command);
+			iatio_.println("Unknown command: " + command);
 		}
 	}
 	
